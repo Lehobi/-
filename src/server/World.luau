@@ -1113,6 +1113,7 @@ local function buildZone(parent, zone)
 	guardian:SetAttribute("HomeY", homePosition.Y)
 	guardian:SetAttribute("HomeZ", homePosition.Z)
 	guardian:ScaleTo(zone.guardian == "rabbit" and 2.2 or 2.1)
+	guardian:SetAttribute("RigScale", guardian:GetScale())
 	guardian:PivotTo(home)
 	guardian.Parent = zoneModel
 	return {
@@ -1243,6 +1244,7 @@ function World:setAnimals(baseId, animals)
 			animal:SetAttribute("RoamHalfZ", 10.5)
 			animal:SetAttribute("RoamSeed", baseId * 100 + index)
 			animal:ScaleTo(1.3)
+			animal:SetAttribute("RigScale", animal:GetScale())
 			animal:PivotTo(spot)
 			animal.Parent = base.animalFolder
 		end

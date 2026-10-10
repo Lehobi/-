@@ -30,12 +30,28 @@ function ChaseRules.inside(zone: Arena, x: number, z: number): boolean
 		and math.abs(z - zone.position.z) <= zone.arenaHalfDepth
 end
 
-function ChaseRules.clampPosition(zone: Arena, x: number, z: number): (number?, number?)
-	if not validArena(zone) or not finite(x) or not finite(z) then
+function ChaseRules.clampPosition(zone: Arena, x: number, z: number, inset: number?): (number?, number?)
+	local margin = inset or 0
+	if
+		not validArena(zone)
+		or not finite(x)
+		or not finite(z)
+		or not finite(margin)
+		or margin < 0
+		or margin >= math.min(zone.arenaHalfWidth, zone.arenaHalfDepth)
+	then
 		return nil, nil
 	end
-	return math.clamp(x, zone.position.x - zone.arenaHalfWidth, zone.position.x + zone.arenaHalfWidth),
-		math.clamp(z, zone.position.z - zone.arenaHalfDepth, zone.position.z + zone.arenaHalfDepth)
+	return math.clamp(
+		x,
+		zone.position.x - zone.arenaHalfWidth + margin,
+		zone.position.x + zone.arenaHalfWidth - margin
+	),
+		math.clamp(
+			z,
+			zone.position.z - zone.arenaHalfDepth + margin,
+			zone.position.z + zone.arenaHalfDepth - margin
+		)
 end
 
 return ChaseRules

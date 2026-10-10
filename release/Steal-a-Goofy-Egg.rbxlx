@@ -3,62 +3,101 @@
     <Properties>
       <string name="Name">Lighting</string>
       <Color3 name="Ambient">
-        <R>0.65</R>
-        <G>0.67</G>
-        <B>0.72</B>
+        <R>0.19</R>
+        <G>0.22</G>
+        <B>0.27</B>
       </Color3>
-      <float name="Brightness">2</float>
-      <float name="ClockTime">14</float>
+      <float name="Brightness">1.65</float>
+      <float name="ClockTime">15.1</float>
+      <float name="EnvironmentDiffuseScale">0.5</float>
+      <float name="EnvironmentSpecularScale">0.25</float>
+      <float name="ExposureCompensation">-0.2</float>
+      <float name="GeographicLatitude">28</float>
+      <bool name="GlobalShadows">true</bool>
       <Color3 name="OutdoorAmbient">
-        <R>0.72</R>
-        <G>0.74</G>
-        <B>0.79</B>
+        <R>0.38</R>
+        <G>0.42</G>
+        <B>0.46</B>
       </Color3>
+      <float name="ShadowSoftness">0.35</float>
+      <token name="Technology">3</token>
     </Properties>
+    <Item class="Atmosphere" referent="1">
+      <Properties>
+        <string name="Name">MeadowAtmosphere</string>
+        <Color3 name="Color">
+          <R>0.78</R>
+          <G>0.86</G>
+          <B>0.92</B>
+        </Color3>
+        <Color3 name="Decay">
+          <R>0.48</R>
+          <G>0.6</G>
+          <B>0.65</B>
+        </Color3>
+        <float name="Density">0.22</float>
+        <float name="Glare">0.08</float>
+        <float name="Haze">0.65</float>
+        <float name="Offset">0.15</float>
+      </Properties>
+    </Item>
+    <Item class="ColorCorrectionEffect" referent="2">
+      <Properties>
+        <string name="Name">MeadowGrade</string>
+        <float name="Brightness">0</float>
+        <float name="Contrast">0.08</float>
+        <float name="Saturation">0.08</float>
+        <Color3 name="TintColor">
+          <R>1</R>
+          <G>0.98</G>
+          <B>0.95</B>
+        </Color3>
+      </Properties>
+    </Item>
   </Item>
-  <Item class="ReplicatedStorage" referent="1">
+  <Item class="ReplicatedStorage" referent="3">
     <Properties>
       <string name="Name">ReplicatedStorage</string>
     </Properties>
-    <Item class="Folder" referent="2">
+    <Item class="Folder" referent="4">
       <Properties>
         <string name="Name">GoofyEgg</string>
       </Properties>
-      <Item class="Folder" referent="3">
+      <Item class="Folder" referent="5">
         <Properties>
           <string name="Name">Remotes</string>
         </Properties>
-        <Item class="RemoteEvent" referent="4">
+        <Item class="RemoteEvent" referent="6">
           <Properties>
             <string name="Name">Action</string>
           </Properties>
         </Item>
-        <Item class="RemoteFunction" referent="5">
+        <Item class="RemoteFunction" referent="7">
           <Properties>
             <string name="Name">GetState</string>
           </Properties>
         </Item>
-        <Item class="RemoteEvent" referent="6">
+        <Item class="RemoteEvent" referent="8">
           <Properties>
             <string name="Name">Hatch</string>
           </Properties>
         </Item>
-        <Item class="RemoteEvent" referent="7">
+        <Item class="RemoteEvent" referent="9">
           <Properties>
             <string name="Name">Notice</string>
           </Properties>
         </Item>
-        <Item class="RemoteEvent" referent="8">
+        <Item class="RemoteEvent" referent="10">
           <Properties>
             <string name="Name">State</string>
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="9">
+      <Item class="Folder" referent="11">
         <Properties>
           <string name="Name">Shared</string>
         </Properties>
-        <Item class="ModuleScript" referent="10">
+        <Item class="ModuleScript" referent="12">
           <Properties>
             <string name="Name">AnimalFactory</string>
             <string name="Source"><![CDATA[-- Original, asset-free toy animals. Models face local -Z and stand at local Y = 0.
@@ -68,6 +107,19 @@ local WHITE = Color3.fromRGB(255, 252, 237)
 local INK = Color3.fromRGB(32, 36, 57)
 local PINK = Color3.fromRGB(255, 141, 172)
 local ORANGE = Color3.fromRGB(255, 175, 68)
+
+local ANIMATION_ROLES = {
+	Foot = "Foot",
+	Ear = "Ear",
+	InnerEar = "Ear",
+	HeadTuft = "Ear",
+	Wing = "Wing",
+	Flipper = "Wing",
+	TinyArm = "Arm",
+	Tail = "Tail",
+	CottonTail = "Tail",
+	TailSpike = "Tail",
+}
 
 local function colorFrom(value)
 	if typeof(value) == "Color3" then
@@ -85,12 +137,20 @@ local function piece(model, name, size, position, color, shape, rotation)
 	part.Color = color
 	part.Shape = shape or Enum.PartType.Ball
 	part.Material = Enum.Material.SmoothPlastic
+	part.Reflectance = 0
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanTouch = false
 	part.CanQuery = false
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
+	local animationRole = ANIMATION_ROLES[name] or "Body"
+	if animationRole then
+		part:SetAttribute("AnimationRole", animationRole)
+		part:SetAttribute("AnimationSide", if position.X < 0 then -1 else 1)
+		-- A turtle's diagonal feet step together; other pets alternate left/right.
+		part:SetAttribute("AnimationPhase", if position.Z > 0.5 then math.pi else 0)
+	end
 	part.Parent = model
 	return part
 end
@@ -98,6 +158,7 @@ end
 local function newModel(name)
 	local model = Instance.new("Model")
 	model.Name = name
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local root = piece(model, "Root", Vector3.new(0.2, 0.2, 0.2), Vector3.zero, WHITE)
 	root.Transparency = 1
 	root.CastShadow = false
@@ -150,6 +211,17 @@ function builders.turtle(model, color)
 		Vector3.new(0, 1.59, 0.25),
 		color:Lerp(WHITE, 0.3)
 	)
+	for _, side in ipairs({ -1, 1 }) do
+		piece(
+			model,
+			"ShellPlate",
+			Vector3.new(0.65, 0.25, 1.02),
+			Vector3.new(side * 0.72, 1.4, 0.28),
+			color:Lerp(INK, 0.12),
+			nil,
+			CFrame.Angles(0, 0, math.rad(side * -28))
+		)
+	end
 	piece(
 		model,
 		"ShellBelly",
@@ -263,6 +335,19 @@ function builders.cat(model, color)
 	end
 	piece(model, "Muzzle", Vector3.new(0.9, 0.49, 0.32), Vector3.new(0, 1.75, -0.82), WHITE)
 	piece(model, "Nose", Vector3.new(0.25, 0.18, 0.16), Vector3.new(0, 1.88, -1), PINK)
+	for _, side in ipairs({ -1, 1 }) do
+		for index = 1, 2 do
+			piece(
+				model,
+				"Whisker",
+				Vector3.new(0.46, 0.035, 0.035),
+				Vector3.new(side * 0.76, 1.73 + index * 0.13, -0.87),
+				INK,
+				Enum.PartType.Block,
+				CFrame.Angles(0, 0, side * (index - 1.5) * 0.24)
+			)
+		end
+	end
 	feet(model, WHITE, 0.48, -0.34)
 	piece(
 		model,
@@ -327,6 +412,15 @@ function AnimalFactory.create(species, color, name)
 	model:SetAttribute("VisualRole", "Animal")
 	local builder = builders[species] or builders.frog
 	builder(model, colorFrom(color))
+	local count = 0
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			-- Replicate the unscaled authored pose, so late clients never cache a partial moving rig.
+			part:SetAttribute("AnimationRest", model:GetPivot():ToObjectSpace(part.CFrame))
+			count += 1
+		end
+	end
+	model:SetAttribute("RigPartCount", count)
 	return model
 end
 
@@ -346,7 +440,70 @@ return AnimalFactory
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="11">
+        <Item class="ModuleScript" referent="13">
+          <Properties>
+            <string name="Name">ChaseRules</string>
+            <string name="Source"><![CDATA[--!strict
+-- Pure arena geometry shared by server movement and standalone boundary tests.
+-- A player's center must cross the red perimeter before a chase is released.
+local ChaseRules = {}
+
+export type Arena = {
+	position: { x: number, z: number },
+	arenaHalfWidth: number,
+	arenaHalfDepth: number,
+}
+
+local function finite(value: number): boolean
+	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+
+local function validArena(zone: Arena): boolean
+	return finite(zone.position.x)
+		and finite(zone.position.z)
+		and finite(zone.arenaHalfWidth)
+		and finite(zone.arenaHalfDepth)
+		and zone.arenaHalfWidth > 0
+		and zone.arenaHalfDepth > 0
+end
+
+function ChaseRules.inside(zone: Arena, x: number, z: number): boolean
+	return validArena(zone)
+		and finite(x)
+		and finite(z)
+		and math.abs(x - zone.position.x) <= zone.arenaHalfWidth
+		and math.abs(z - zone.position.z) <= zone.arenaHalfDepth
+end
+
+function ChaseRules.clampPosition(zone: Arena, x: number, z: number, inset: number?): (number?, number?)
+	local margin = inset or 0
+	if
+		not validArena(zone)
+		or not finite(x)
+		or not finite(z)
+		or not finite(margin)
+		or margin < 0
+		or margin >= math.min(zone.arenaHalfWidth, zone.arenaHalfDepth)
+	then
+		return nil, nil
+	end
+	return math.clamp(
+		x,
+		zone.position.x - zone.arenaHalfWidth + margin,
+		zone.position.x + zone.arenaHalfWidth - margin
+	),
+		math.clamp(
+			z,
+			zone.position.z - zone.arenaHalfDepth + margin,
+			zone.position.z + zone.arenaHalfDepth - margin
+		)
+end
+
+return ChaseRules
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="14">
           <Properties>
             <string name="Name">Config</string>
             <string name="Source"><![CDATA[--!strict
@@ -370,6 +527,9 @@ export type ZoneDefinition = {
 	position: { x: number, z: number },
 	guardianOffset: number,
 	guardianSpeed: number,
+	arenaHalfWidth: number,
+	arenaHalfDepth: number,
+	wakeSeconds: number,
 	requiredLevel: number,
 	hatchSeconds: number,
 	cooldownSeconds: number,
@@ -381,12 +541,16 @@ local Config = {
 	startCash = 25,
 	hatchSlots = 3,
 	maxAnimals = 8,
+	audio = {
+		enabled = true,
+		volume = 0.4,
+	},
 	speed = {
 		base = 16,
 		perLevel = 2,
 		maxLevel = 12,
-		baseCost = 25,
-		costGrowth = 1.55,
+		baseCost = 50,
+		costGrowth = 1.65,
 	},
 	basePositions = {
 		{ x = -80, z = -25 },
@@ -476,7 +640,10 @@ local Config = {
 			guardian = "turtle",
 			position = { x = 0, z = 140 },
 			guardianOffset = 20,
-			guardianSpeed = 12,
+			guardianSpeed = 19,
+			arenaHalfWidth = 46,
+			arenaHalfDepth = 55,
+			wakeSeconds = 0.45,
 			requiredLevel = 0,
 			hatchSeconds = 10,
 			cooldownSeconds = 8,
@@ -497,8 +664,11 @@ local Config = {
 			guardian = "rabbit",
 			position = { x = 0, z = 310 },
 			guardianOffset = 20,
-			guardianSpeed = 22,
-			requiredLevel = 4,
+			guardianSpeed = 31,
+			arenaHalfWidth = 46,
+			arenaHalfDepth = 55,
+			wakeSeconds = 0.45,
+			requiredLevel = 6,
 			hatchSeconds = 18,
 			cooldownSeconds = 10,
 			color = { r = 223, g = 181, b = 217 },
@@ -519,7 +689,7 @@ return Config
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="12">
+        <Item class="ModuleScript" referent="15">
           <Properties>
             <string name="Name">Economy</string>
             <string name="Source"><![CDATA[--!strict
@@ -695,6 +865,10 @@ function Economy.validateConfig(): boolean
 		assert(finite(zone.position.x) and finite(zone.position.z), "Zone coordinates must be finite")
 		assert(finite(zone.guardianOffset) and zone.guardianOffset > 0, "Guardian offset must be positive")
 		assert(finite(zone.guardianSpeed) and zone.guardianSpeed > 0, "Guardian speed must be positive")
+		assert(finite(zone.arenaHalfWidth) and zone.arenaHalfWidth > 0, "Arena width must be positive")
+		assert(finite(zone.arenaHalfDepth) and zone.arenaHalfDepth > 0, "Arena depth must be positive")
+		assert(zone.guardianOffset < zone.arenaHalfWidth, "Guardian home must be inside its arena")
+		assert(finite(zone.wakeSeconds) and zone.wakeSeconds >= 0, "Wake time must be nonnegative")
 		checkLevel(zone.requiredLevel)
 		assert(finite(zone.hatchSeconds) and zone.hatchSeconds > 0, "Hatch time must be positive")
 		assert(finite(zone.cooldownSeconds) and zone.cooldownSeconds >= 0, "Cooldown must be nonnegative")
@@ -714,18 +888,155 @@ return Economy
 ]]></string>
           </Properties>
         </Item>
+        <Item class="ModuleScript" referent="16">
+          <Properties>
+            <string name="Name">PetMotion</string>
+            <string name="Source"><![CDATA[--!strict
+-- Pure presentation math: every client samples the same pet route from server
+-- time. No pathfinding, physics, economic state, or movement remotes are needed.
+local PetMotion = {}
+
+export type Leg = {
+	x: number,
+	z: number,
+	dx: number,
+	dz: number,
+	heading: number,
+	previousHeading: number,
+	pause: number,
+	travel: number,
+	start: number,
+}
+export type Plan = {
+	legs: { Leg },
+	duration: number,
+	phase: number,
+	speed: number,
+}
+export type Sample = {
+	x: number,
+	z: number,
+	heading: number,
+	speed: number,
+	stride: number,
+	walking: boolean,
+}
+
+local speeds: { [string]: number } = {
+	turtle = 1.8,
+	rabbit = 3.7,
+	frog = 3.1,
+	duck = 2.7,
+	penguin = 2.4,
+	cat = 3.2,
+	dinosaur = 2.6,
+}
+
+local function finite(value: number): boolean
+	return value == value and value > -math.huge and value < math.huge
+end
+
+local function smooth(value: number): number
+	return value * value * (3 - 2 * value)
+end
+
+local function angleBetween(a: number, b: number): number
+	return (b - a + math.pi) % (math.pi * 2) - math.pi
+end
+
+function PetMotion.new(seed: number, halfX: number, halfZ: number, species: string): Plan
+	assert(finite(seed) and seed % 1 == 0, "Pet seed must be a finite integer")
+	assert(finite(halfX) and finite(halfZ) and halfX > 0 and halfZ > 0, "Pet bounds must be positive")
+	-- Park-Miller stays below double-precision's exact integer limit. This avoids
+	-- depending on engine RNG state or frame history when a client joins later.
+	local state = math.abs(seed) % 2147483646 + 1
+	local function random(): number
+		state = (state * 48271) % 2147483647
+		return state / 2147483647
+	end
+	for _ = 1, 3 do
+		random()
+	end
+	local points: { { x: number, z: number, pause: number } } = {}
+	for _ = 1, 9 do
+		table.insert(points, {
+			x = (random() * 2 - 1) * halfX * 0.86,
+			z = (random() * 2 - 1) * halfZ * 0.86,
+			pause = 1.3 + random() * (if species == "turtle" then 3.6 else 2.5),
+		})
+	end
+	local speed = speeds[species] or 2.7
+	local legs: { Leg } = {}
+	local duration = 0
+	for index, point in ipairs(points) do
+		local nextPoint = points[index % #points + 1]
+		local dx, dz = nextPoint.x - point.x, nextPoint.z - point.z
+		local distance = math.sqrt(dx * dx + dz * dz)
+		-- Cubic interpolation peaks at 1.5 times its average speed.
+		local travel = math.max(1.2, distance * 1.5 / speed)
+		table.insert(legs, {
+			x = point.x,
+			z = point.z,
+			dx = dx,
+			dz = dz,
+			heading = math.atan2(-dx, -dz), -- Models face local -Z.
+			previousHeading = 0,
+			pause = point.pause,
+			travel = travel,
+			start = duration,
+		})
+		duration += point.pause + travel
+	end
+	for index, leg in ipairs(legs) do
+		leg.previousHeading = legs[(index - 2) % #legs + 1].heading
+	end
+	return { legs = legs, duration = duration, phase = random() * duration, speed = speed }
+end
+
+function PetMotion.sample(plan: Plan, now: number): Sample
+	assert(finite(now), "Pet animation time must be finite")
+	local cycle = (now + plan.phase) % plan.duration
+	local leg = plan.legs[#plan.legs]
+	for _, candidate in ipairs(plan.legs) do
+		if cycle < candidate.start + candidate.pause + candidate.travel then
+			leg = candidate
+			break
+		end
+	end
+	local elapsed = cycle - leg.start
+	local progress = math.clamp((elapsed - leg.pause) / leg.travel, 0, 1)
+	local distance = math.sqrt(leg.dx * leg.dx + leg.dz * leg.dz)
+	local speed = distance * 6 * progress * (1 - progress) / leg.travel
+	-- Look around during the pause, then face the next destination before moving.
+	local turn = smooth(math.clamp(elapsed / math.min(1.2, leg.pause), 0, 1))
+	local heading = leg.previousHeading + angleBetween(leg.previousHeading, leg.heading) * turn
+	local fraction = smooth(progress)
+	return {
+		x = leg.x + leg.dx * fraction,
+		z = leg.z + leg.dz * fraction,
+		heading = heading,
+		speed = speed,
+		stride = distance * fraction,
+		walking = speed > 0.05,
+	}
+end
+
+return PetMotion
+]]></string>
+          </Properties>
+        </Item>
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="13">
+  <Item class="ServerScriptService" referent="17">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="14">
+    <Item class="Folder" referent="18">
       <Properties>
         <string name="Name">GoofyEgg</string>
       </Properties>
-      <Item class="Script" referent="15">
+      <Item class="Script" referent="19">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -739,6 +1050,7 @@ local shared = ReplicatedStorage:WaitForChild("GoofyEgg"):WaitForChild("Shared")
 local remotes = ReplicatedStorage.GoofyEgg.Remotes
 local Config = require(shared.Config)
 local Economy = require(shared.Economy)
+local ChaseRules = require(shared.ChaseRules)
 local AnimalFactory = require(shared.AnimalFactory)
 local Session = require(script.Parent.Session)
 local World = require(script.Parent.World)
@@ -768,8 +1080,8 @@ local function connect(signal, callback)
 	return connection
 end
 
-local function notice(player, text, kind)
-	remotes.Notice:FireClient(player, { text = text, kind = kind or "info" })
+local function notice(player, text, kind, sound)
+	remotes.Notice:FireClient(player, { text = text, kind = kind or "info", sound = sound })
 end
 
 local function body(player)
@@ -844,12 +1156,17 @@ local function showCarry(player, zone)
 	carryModels[player] = model
 end
 
+local function setGuardianState(guardian, state)
+	guardian.state = state
+	guardian.world.guardian:SetAttribute("State", state)
+	guardian.world.guardian:SetAttribute("Chasing", state == "Chasing")
+end
+
 local function endChase(player)
 	for _, guardian in guardians do
 		if guardian.target == player then
 			guardian.target = nil
-			guardian.state = "Returning"
-			guardian.world.guardian:SetAttribute("Chasing", false)
+			setGuardianState(guardian, "Returning")
 		end
 	end
 end
@@ -870,7 +1187,7 @@ local function returnHome(player)
 	end
 end
 
-local function loseEgg(player, message, teleport)
+local function loseEgg(player, message, teleport, sound)
 	local session = sessions[player]
 	if not session then
 		return
@@ -882,7 +1199,7 @@ local function loseEgg(player, message, teleport)
 		returnHome(player)
 	end
 	if message and hadEgg then
-		notice(player, message, "warning")
+		notice(player, message, "warning", sound)
 	end
 	send(player)
 end
@@ -898,13 +1215,13 @@ local function deposit(player)
 	end
 	local hatch = session:deposit(clock())
 	if not hatch then
-		notice(player, "All hatch slots are busy!", "warning")
+		notice(player, "All hatch slots are busy!", "warning", "denied")
 		return
 	end
 	clearCarry(player)
 	endChase(player)
 	world:showHatch(session.baseId, hatch.slot, hatch.zoneId, hatch.readyAt)
-	notice(player, "Safe at home! Your egg is hatching.", "success")
+	notice(player, "Safe at home! Your egg is hatching.", "success", "deposit")
 	send(player)
 end
 
@@ -917,9 +1234,9 @@ local function upgrade(player)
 	if ok then
 		local _, humanoid = body(player)
 		humanoid.WalkSpeed = Economy.walkSpeed(session.speedLevel)
-		notice(player, "Speed level " .. session.speedLevel .. "!", "success")
+		notice(player, "Speed level " .. session.speedLevel .. "!", "success", "upgrade")
 	else
-		notice(player, reason, "warning")
+		notice(player, reason, "warning", "denied")
 	end
 	send(player)
 end
@@ -935,8 +1252,18 @@ end
 
 for _, zone in Config.zones do
 	local zoneWorld = world.zones[zone.id]
-	local guardian = { world = zoneWorld, state = "Idle", target = nil, readyAt = 0, startedAt = 0 }
+	local size = zoneWorld.guardian:GetExtentsSize()
+	-- Keep the entire animated silhouette inside the red perimeter, not just its pivot.
+	local guardian = {
+		world = zoneWorld,
+		state = "Idle",
+		target = nil,
+		readyAt = 0,
+		startedAt = 0,
+		inset = math.sqrt(size.X * size.X + size.Z * size.Z) * 0.5 + 0.5,
+	}
 	guardians[zone.id] = guardian
+	setGuardianState(guardian, "Idle")
 	connect(zoneWorld.prompt.Triggered, function(player)
 		if not permitted(player) or guardian.state ~= "Idle" then
 			return
@@ -945,23 +1272,22 @@ for _, zone in Config.zones do
 		if not near(player, zoneWorld.egg:GetPivot().Position, 13) then
 			return
 		end
+		local root = body(player)
+		if not root or not ChaseRules.inside(zone, root.Position.X, root.Position.Z) then
+			return
+		end
 		local session = sessions[player]
 		local ok, reason = session:steal(zone.id)
 		if not ok then
-			notice(player, reason, "warning")
+			notice(player, reason, "warning", "denied")
 			return
 		end
-		guardian.state = "Chasing"
+		setGuardianState(guardian, "Chasing")
 		guardian.target = player
 		guardian.startedAt = clock()
-		guardian.world.guardian:SetAttribute("Chasing", true)
 		world:setEggAvailable(zone.id, false)
 		showCarry(player, zone)
-		notice(
-			player,
-			"The " .. zone.guardian .. " woke up! Run to base " .. session.baseId .. "!",
-			"warning"
-		)
+		notice(player, "The " .. zone.guardian .. " woke up! Cross the red line!", "warning", "steal")
 		send(player)
 	end)
 end
@@ -1024,7 +1350,7 @@ local function onCharacter(player, character)
 	humanoid.JumpPower = 40
 	returnHome(player)
 	characterConnections[player] = humanoid.Died:Connect(function()
-		loseEgg(player, "Oops! Your egg was lost. Your animals are safe.", false)
+		loseEgg(player, "Oops! Your egg was lost. Your animals are safe.", false, "catch")
 	end)
 	send(player)
 end
@@ -1114,6 +1440,7 @@ checkMotion = function(player, now)
 	local invalid = distance ~= distance
 		or distance == math.huge
 		or distance > available
+		or root.Position.Y ~= root.Position.Y
 		or root.Position.Y > 40
 		or root.Position.Y < -20
 	if invalid then
@@ -1130,12 +1457,22 @@ end
 local function moveGuardian(guardian, targetPosition, speed, dt, now)
 	local model = guardian.world.guardian
 	local from = model:GetPivot().Position
-	local destination = Vector3.new(targetPosition.X, guardian.world.home.Position.Y, targetPosition.Z)
+	local zone = guardian.world.config
+	local x, z = ChaseRules.clampPosition(zone, targetPosition.X, targetPosition.Z, guardian.inset)
+	if not x or not z then
+		return math.huge
+	end
+	local destination = Vector3.new(x, guardian.world.home.Position.Y, z)
 	local delta = destination - Vector3.new(from.X, destination.Y, from.Z)
 	local distance = delta.Magnitude
 	if distance > 0.05 then
 		local position = Vector3.new(from.X, destination.Y, from.Z)
 			+ delta.Unit * math.min(distance, speed * dt)
+		local boundedX, boundedZ = ChaseRules.clampPosition(zone, position.X, position.Z, guardian.inset)
+		if not boundedX or not boundedZ then
+			return math.huge
+		end
+		position = Vector3.new(boundedX, destination.Y, boundedZ)
 		-- Tiny procedural bounce makes the original part animal waddle without physics overhead.
 		position += Vector3.new(0, math.abs(math.sin(now * 9)) * 0.18, 0)
 		model:PivotTo(CFrame.lookAt(position, position + delta.Unit))
@@ -1170,14 +1507,27 @@ connect(RunService.Heartbeat, function(dt)
 			local root = player and body(player)
 			if not root or not session or session.carrying ~= zoneId then
 				guardian.target = nil
-				guardian.state = "Returning"
-				guardian.world.guardian:SetAttribute("Chasing", false)
+				setGuardianState(guardian, "Returning")
+			elseif not ChaseRules.inside(zone, root.Position.X, root.Position.Z) then
+				-- Release BEFORE moving or checking catches: the red perimeter is a safe exit.
+				-- A secured egg stays in the player's hands, and re-entering cannot rearm this chase.
+				guardian.target = nil
+				setGuardianState(guardian, "Returning")
+				if session:markEscaped(zoneId) then
+					notice(
+						player,
+						"Escaped! Bring your egg home to base " .. session.baseId .. ".",
+						"success",
+						"escape"
+					)
+					send(player)
+				end
 			elseif now - guardian.startedAt > 60 then
-				loseEgg(player, "The guardian reclaimed its egg. Try a quicker route!", true)
-			else
+				loseEgg(player, "The guardian reclaimed its egg. Try a quicker route!", true, "catch")
+			elseif now - guardian.startedAt >= zone.wakeSeconds then
 				moveGuardian(guardian, root.Position, zone.guardianSpeed, step, now)
 				if flatDistance(guardian.world.guardian:GetPivot().Position, root.Position) < 4.5 then
-					loseEgg(player, "Caught! Your egg is gone, but your animals are safe.", true)
+					loseEgg(player, "Caught! Your egg is gone, but your animals are safe.", true, "catch")
 				end
 			end
 		elseif guardian.state == "Returning" then
@@ -1185,11 +1535,11 @@ connect(RunService.Heartbeat, function(dt)
 				moveGuardian(guardian, guardian.world.home.Position, zone.guardianSpeed * 1.5, step, now) < 1
 			then
 				guardian.world.guardian:PivotTo(guardian.world.home)
-				guardian.state = "Cooldown"
+				setGuardianState(guardian, "Cooldown")
 				guardian.readyAt = now + zone.cooldownSeconds
 			end
 		elseif guardian.state == "Cooldown" and now >= guardian.readyAt then
-			guardian.state = "Idle"
+			setGuardianState(guardian, "Idle")
 			world:setEggAvailable(zoneId, true)
 		end
 	end
@@ -1244,11 +1594,11 @@ game:BindToClose(function()
 	world:destroy()
 end)
 
-print("Steal a Goofy Egg: Phase 1 initialized (five bases, session-only progress, no music).")
+print("Steal a Goofy Egg: garden refinement initialized (five bases, session-only progress, no music).")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="16">
+      <Item class="ModuleScript" referent="20">
         <Properties>
           <string name="Name">Session</string>
           <string name="Source"><![CDATA[-- Pure session state: synchronous mutations make deposits/hatches exactly-once in this server.
@@ -1262,6 +1612,7 @@ function Session.new(baseId, config, economy)
 		cash = config.startCash,
 		speedLevel = 0,
 		carrying = nil,
+		escaped = false,
 		hatches = {},
 		animals = {},
 		discovered = {},
@@ -1291,6 +1642,15 @@ function Session:steal(zoneId)
 		return false, "Your hatch slots are full. Wait for an egg to hatch."
 	end
 	self.carrying = zoneId
+	self.escaped = false
+	return true
+end
+
+function Session:markEscaped(zoneId)
+	if self.carrying ~= zoneId or self.escaped then
+		return false
+	end
+	self.escaped = true
 	return true
 end
 
@@ -1303,12 +1663,14 @@ function Session:deposit(now)
 	local hatch = { slot = slot, zoneId = zone.id, readyAt = now + zone.hatchSeconds }
 	self.hatches[slot] = hatch
 	self.carrying = nil
+	self.escaped = false
 	return hatch
 end
 
 function Session:loseCarry()
 	local previous = self.carrying
 	self.carrying = nil
+	self.escaped = false
 	return previous
 end
 
@@ -1355,7 +1717,7 @@ function Session:snapshot()
 	for _, animal in self.animals do
 		table.insert(animals, { id = animal.id })
 	end
-	local nextZone = "All prototype zones unlocked!"
+	local nextZone = "All current zones unlocked!"
 	for _, zone in self.config.zones do
 		if self.speedLevel < zone.requiredLevel then
 			nextZone = zone.name .. " unlocks at speed level " .. zone.requiredLevel
@@ -1370,15 +1732,17 @@ function Session:snapshot()
 		upgradeCost = self.economy.upgradeCost(self.speedLevel),
 		baseId = self.baseId,
 		carrying = self.carrying,
+		escaped = self.escaped,
 		hatches = hatches,
 		animals = animals,
 		discovered = table.clone(self.discovered),
 		nextZone = nextZone,
-		tutorial = if self.carrying
-			then "Bring your egg to your own glowing base!"
+		tutorial = if self.carrying and not self.escaped
+			then "Run across the red boundary to escape the guardian!"
+			elseif self.carrying then "You escaped! Bring the egg to your own nest."
 			elseif
 				#self.animals == 0
-			then "Follow the path to Turtle Meadow. Hold the egg prompt, then run home!"
+			then "Take an egg in Turtle Meadow. Cross the red line, then bring it home!"
 			else "Your animals earn cash every second. Upgrade speed and try Rabbit Ridge!",
 		sessionOnly = true,
 	}
@@ -1388,10 +1752,11 @@ return Session
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="17">
+      <Item class="ModuleScript" referent="21">
         <Properties>
           <string name="Name">World</string>
-          <string name="Source"><![CDATA[-- The complete starter map is generated from original parts; no downloaded assets.
+          <string name="Source"><![CDATA[-- Original garden ranches and guardian courtyards, made entirely from parts.
+-- World lettering is attached to physical signs: it never turns with the camera.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AnimalFactory =
 	require(ReplicatedStorage:WaitForChild("GoofyEgg"):WaitForChild("Shared"):WaitForChild("AnimalFactory"))
@@ -1400,22 +1765,28 @@ local World = {}
 World.__index = World
 
 local COLORS = {
-	grass = Color3.fromRGB(135, 201, 121),
-	path = Color3.fromRGB(249, 226, 169),
-	edge = Color3.fromRGB(255, 248, 221),
-	ink = Color3.fromRGB(37, 54, 72),
-	wood = Color3.fromRGB(143, 102, 75),
-	leaf = Color3.fromRGB(77, 166, 108),
-	mint = Color3.fromRGB(102, 222, 183),
-	white = Color3.fromRGB(255, 254, 242),
+	grass = Color3.fromRGB(88, 133, 77),
+	lawn = Color3.fromRGB(105, 148, 82),
+	path = Color3.fromRGB(177, 151, 112),
+	stone = Color3.fromRGB(100, 110, 106),
+	stoneLight = Color3.fromRGB(139, 147, 135),
+	ink = Color3.fromRGB(34, 52, 47),
+	wood = Color3.fromRGB(115, 78, 50),
+	woodLight = Color3.fromRGB(158, 112, 69),
+	leaf = Color3.fromRGB(58, 109, 69),
+	leafLight = Color3.fromRGB(113, 153, 76),
+	mint = Color3.fromRGB(113, 184, 137),
+	cream = Color3.fromRGB(232, 218, 179),
+	gold = Color3.fromRGB(210, 161, 72),
+	red = Color3.fromRGB(204, 60, 57),
 }
 
 local BASE_COLORS = {
-	Color3.fromRGB(117, 203, 239),
-	Color3.fromRGB(255, 185, 119),
-	Color3.fromRGB(204, 170, 244),
-	Color3.fromRGB(244, 159, 190),
-	Color3.fromRGB(157, 218, 135),
+	Color3.fromRGB(87, 147, 160),
+	Color3.fromRGB(190, 133, 79),
+	Color3.fromRGB(145, 122, 177),
+	Color3.fromRGB(179, 112, 130),
+	Color3.fromRGB(128, 161, 88),
 }
 
 local function colorFrom(value)
@@ -1440,13 +1811,13 @@ local function model(name, parent)
 	return result
 end
 
-local function part(parent, name, size, position, color, collidable, shape, rotation)
+local function part(parent, name, size, position, color, collidable, shape, rotation, material)
 	local result = Instance.new("Part")
 	result.Name = name
 	result.Size = size
 	result.CFrame = CFrame.new(position) * (rotation or CFrame.identity)
 	result.Color = color
-	result.Material = Enum.Material.SmoothPlastic
+	result.Material = material or Enum.Material.SmoothPlastic
 	result.Shape = shape or Enum.PartType.Block
 	result.Anchored = true
 	result.CanCollide = collidable == true
@@ -1458,7 +1829,7 @@ local function part(parent, name, size, position, color, collidable, shape, rota
 	return result
 end
 
-local function disc(parent, name, diameter, thickness, position, color, collidable)
+local function disc(parent, name, diameter, thickness, position, color, collidable, material)
 	return part(
 		parent,
 		name,
@@ -1467,35 +1838,37 @@ local function disc(parent, name, diameter, thickness, position, color, collidab
 		color,
 		collidable,
 		Enum.PartType.Cylinder,
-		CFrame.Angles(0, 0, math.pi / 2)
+		CFrame.Angles(0, 0, math.pi / 2),
+		material
 	)
 end
 
-local function billboard(parent, name, width, height, offset, maxDistance)
-	local gui = Instance.new("BillboardGui")
+local function surface(board, name, maxDistance, face)
+	local gui = Instance.new("SurfaceGui")
 	gui.Name = name
-	gui.Adornee = parent
-	gui.Size = UDim2.fromOffset(width, height)
-	gui.StudsOffsetWorldSpace = offset or Vector3.new(0, 4, 0)
+	gui.Adornee = board
+	gui.Face = face or Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 44
+	gui.LightInfluence = 0.15
+	gui.Brightness = 1
 	gui.AlwaysOnTop = false
-	gui.LightInfluence = 0
-	gui.MaxDistance = maxDistance or 95
-	gui.Parent = parent
+	gui.MaxDistance = maxDistance or 48
+	gui.Parent = board
 	return gui
 end
 
-local function textLabel(parent, name, text, color, y, height)
+local function textLabel(parent, name, text, color, y, height, textSize)
 	local label = Instance.new("TextLabel")
 	label.Name = name
-	label.Size = UDim2.fromScale(1, height or 1)
-	label.Position = UDim2.fromScale(0, y or 0)
+	label.Size = UDim2.fromScale(0.94, height or 0.9)
+	label.Position = UDim2.fromScale(0.03, y or 0.05)
 	label.BackgroundTransparency = 1
 	label.Text = text
-	label.TextColor3 = color or COLORS.white
-	label.TextStrokeColor3 = COLORS.ink
-	label.TextStrokeTransparency = 0.25
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
+	label.TextColor3 = color or COLORS.cream
+	label.TextStrokeTransparency = 1
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = textSize or 34
 	label.TextWrapped = true
 	label.Parent = parent
 	return label
@@ -1516,65 +1889,102 @@ local function prompt(parent, name, action, object, holdDuration)
 	return result
 end
 
-local function sign(parent, name, position, text, color, width, maxDistance)
+local function plaque(parent, name, position, text, color, width, height, rotation, maxDistance, textSize)
+	local facing = rotation or CFrame.identity
 	part(
 		parent,
-		name .. "Post",
-		Vector3.new(0.6, 5, 0.6),
-		position + Vector3.new(0, 2.5, 0),
+		name .. "Frame",
+		Vector3.new(width + 0.5, height + 0.5, 0.5),
+		position + facing:VectorToWorldSpace(Vector3.new(0, 0, 0.14)),
 		COLORS.wood,
-		false
+		false,
+		nil,
+		facing,
+		Enum.Material.Wood
 	)
-	local board = part(
+	local board = part(parent, name, Vector3.new(width, height, 0.35), position, color, false, nil, facing)
+	local gui = surface(board, name .. "Lettering", maxDistance)
+	return textLabel(gui, "Title", text, COLORS.cream, nil, nil, textSize), board
+end
+
+local function sign(parent, name, position, text, color, width, maxDistance, rotation)
+	for _, side in ipairs({ -1, 1 }) do
+		part(
+			parent,
+			name .. "Post",
+			Vector3.new(0.65, 4.8, 0.65),
+			position + Vector3.new(side * (width or 12) * 0.37, 2.4, 0),
+			COLORS.wood,
+			false,
+			nil,
+			nil,
+			Enum.Material.Wood
+		)
+	end
+	return plaque(
 		parent,
 		name,
-		Vector3.new(width or 12, 3, 0.65),
-		position + Vector3.new(0, 5, 0),
+		position + Vector3.new(0, 4.4, 0),
+		text,
 		color or COLORS.ink,
-		false
+		width or 12,
+		3,
+		rotation,
+		maxDistance or 48
 	)
-	local gui = billboard(board, name .. "Billboard", 280, 65, Vector3.zero, maxDistance or 110)
-	return textLabel(gui, "Title", text, COLORS.white)
 end
 
 local function tree(parent, x, z, scale)
 	local base = Vector3.new(x, 0, z)
-	local treeModel = model("LollipopTree", parent)
+	local treeModel = model("GardenTree", parent)
 	part(
 		treeModel,
 		"Trunk",
-		Vector3.new(1.8, 8, 1.8) * scale,
-		base + Vector3.new(0, 4 * scale, 0),
+		Vector3.new(2, 9, 2) * scale,
+		base + Vector3.new(0, 4.5 * scale, 0),
 		COLORS.wood,
-		false
+		false,
+		nil,
+		nil,
+		Enum.Material.Wood
 	)
 	part(
 		treeModel,
-		"Crown",
-		Vector3.new(8, 8, 8) * scale,
-		base + Vector3.new(0, 10 * scale, 0),
-		COLORS.leaf,
+		"Branch",
+		Vector3.new(1, 5, 1) * scale,
+		base + Vector3.new(1.4 * scale, 8 * scale, 0),
+		COLORS.wood,
 		false,
-		Enum.PartType.Ball
+		nil,
+		CFrame.Angles(0, 0, -0.55),
+		Enum.Material.Wood
 	)
-	part(
-		treeModel,
-		"CrownLight",
-		Vector3.new(5, 5, 5) * scale,
-		base + Vector3.new(-2 * scale, 12 * scale, -scale),
-		COLORS.leaf:Lerp(COLORS.white, 0.13),
-		false,
-		Enum.PartType.Ball
-	)
+	for index, offset in ipairs({
+		Vector3.new(0, 11, 0),
+		Vector3.new(-3, 10, 0.8),
+		Vector3.new(3, 11.3, 0),
+		Vector3.new(0.6, 14, -0.5),
+	}) do
+		part(
+			treeModel,
+			"Canopy",
+			Vector3.new(9, 6.5, 8) * scale,
+			base + offset * scale,
+			index % 2 == 0 and COLORS.leafLight or COLORS.leaf,
+			false,
+			Enum.PartType.Ball
+		)
+	end
 end
 
-local function shrubs(parent, x, z, color)
+local function shrubs(parent, x, z, color, scale)
+	scale = scale or 1
 	for index = 1, 3 do
 		part(
 			parent,
 			"Shrub",
-			Vector3.new(3.8, 3.2, 3.5),
-			Vector3.new(x + (index - 2) * 2.8, 1.2, z),
+			Vector3.new(3.8, 2.8, 3.5) * scale,
+			Vector3.new(x + (index - 2) * 2.4 * scale, 1.2 * scale, z),
 			color or COLORS.leaf,
 			false,
 			Enum.PartType.Ball
@@ -1582,82 +1992,437 @@ local function shrubs(parent, x, z, color)
 	end
 end
 
+local function planter(parent, position, accent)
+	part(
+		parent,
+		"Planter",
+		Vector3.new(7, 1.1, 3),
+		position + Vector3.new(0, 0.55, 0),
+		COLORS.wood,
+		false,
+		nil,
+		nil,
+		Enum.Material.WoodPlanks
+	)
+	part(
+		parent,
+		"Soil",
+		Vector3.new(6.6, 0.2, 2.6),
+		position + Vector3.new(0, 1.12, 0),
+		Color3.fromRGB(76, 63, 47),
+		false
+	)
+	for index = 1, 5 do
+		part(
+			parent,
+			"FlowerLeaves",
+			Vector3.new(0.8, 1.1, 0.8),
+			position + Vector3.new((index - 3) * 1.2, 1.65, 0),
+			COLORS.leaf,
+			false,
+			Enum.PartType.Ball
+		)
+		part(
+			parent,
+			"Flower",
+			Vector3.new(0.8, 0.5, 0.8),
+			position + Vector3.new((index - 3) * 1.2, 2.25, 0),
+			index % 2 == 0 and COLORS.cream or accent,
+			false,
+			Enum.PartType.Ball
+		)
+	end
+end
+
+local function lamp(parent, position)
+	local lantern = model("GardenLantern", parent)
+	part(
+		lantern,
+		"Foot",
+		Vector3.new(2, 0.7, 2),
+		position + Vector3.new(0, 0.35, 0),
+		COLORS.stone,
+		false,
+		nil,
+		nil,
+		Enum.Material.Slate
+	)
+	part(
+		lantern,
+		"Post",
+		Vector3.new(0.6, 7.5, 0.6),
+		position + Vector3.new(0, 4, 0),
+		COLORS.ink,
+		false,
+		nil,
+		nil,
+		Enum.Material.Metal
+	)
+	local glass = part(
+		lantern,
+		"WarmGlass",
+		Vector3.new(1.5, 1.65, 1.5),
+		position + Vector3.new(0, 8.1, 0),
+		COLORS.cream,
+		false
+	)
+	part(lantern, "LanternCap", Vector3.new(2, 0.4, 2), position + Vector3.new(0, 9.05, 0), COLORS.ink, false)
+	part(
+		lantern,
+		"LanternBase",
+		Vector3.new(1.9, 0.35, 1.9),
+		position + Vector3.new(0, 7.2, 0),
+		COLORS.ink,
+		false
+	)
+	local glow = Instance.new("PointLight")
+	glow.Name = "WarmLight"
+	glow.Color = COLORS.cream
+	glow.Brightness = 0.4
+	glow.Range = 12
+	glow.Shadows = false
+	glow.Parent = glass
+end
+
+local function trail(parent, name, center, size)
+	part(
+		parent,
+		name .. "Edging",
+		size + Vector3.new(1.5, 0, 1.5),
+		center,
+		COLORS.stone,
+		true,
+		nil,
+		nil,
+		Enum.Material.Slate
+	)
+	part(
+		parent,
+		name,
+		size + Vector3.new(0, 0.04, 0),
+		center + Vector3.new(0, 0.04, 0),
+		COLORS.path,
+		true,
+		nil,
+		nil,
+		Enum.Material.Cobblestone
+	)
+end
+
 local function buildGround(root)
 	local map = folder("Landscape", root)
-	local ground = part(map, "Meadow", Vector3.new(360, 2, 760), Vector3.new(0, -1, 85), COLORS.grass, true)
-	ground.Material = Enum.Material.Grass
-	part(map, "MainPath", Vector3.new(64, 0.16, 405), Vector3.new(0, 0.08, 200), COLORS.path, true)
-	part(map, "LobbyPlaza", Vector3.new(235, 0.2, 45), Vector3.new(0, 0.1, 21), COLORS.path, true)
-	for _, x in ipairs({ -33, 33 }) do
-		part(map, "PathTrim", Vector3.new(1.5, 0.22, 405), Vector3.new(x, 0.11, 200), COLORS.edge, false)
-	end
+	part(
+		map,
+		"Meadow",
+		Vector3.new(360, 2, 760),
+		Vector3.new(0, -1, 85),
+		COLORS.grass,
+		true,
+		nil,
+		nil,
+		Enum.Material.Grass
+	)
+	trail(map, "VillageWalk", Vector3.new(0, 0.1, -53), Vector3.new(20, 0.2, 222))
+	trail(map, "LobbyPlaza", Vector3.new(0, 0.1, 28), Vector3.new(232, 0.2, 31))
+	trail(map, "GardenLane", Vector3.new(0, 0.1, -70), Vector3.new(195, 0.2, 16))
+	trail(map, "GuardianWalk", Vector3.new(0, 0.1, 228.5), Vector3.new(26, 0.2, 353))
 	for _, x in ipairs({ -179, 179 }) do
-		part(map, "Boundary", Vector3.new(2, 4, 760), Vector3.new(x, 2, 85), COLORS.leaf, true)
+		part(
+			map,
+			"BoundaryHedge",
+			Vector3.new(2, 5, 760),
+			Vector3.new(x, 2.5, 85),
+			COLORS.leaf,
+			true,
+			nil,
+			nil,
+			Enum.Material.Grass
+		)
 	end
 	for _, z in ipairs({ -294, 464 }) do
-		part(map, "Boundary", Vector3.new(360, 4, 2), Vector3.new(0, 2, z), COLORS.leaf, true)
+		part(
+			map,
+			"BoundaryHedge",
+			Vector3.new(360, 5, 2),
+			Vector3.new(0, 2.5, z),
+			COLORS.leaf,
+			true,
+			nil,
+			nil,
+			Enum.Material.Grass
+		)
 	end
+
+	local walls = folder("GuardianRouteWalls", root)
+	for _, side in ipairs({ -1, 1 }) do
+		local x = side * 49
+		part(
+			walls,
+			"StoneWall",
+			Vector3.new(2.5, 8.5, 353),
+			Vector3.new(x, 4.25, 228.5),
+			COLORS.stone,
+			true,
+			nil,
+			nil,
+			Enum.Material.Cobblestone
+		)
+		part(
+			walls,
+			"TimberTop",
+			Vector3.new(2.7, 2, 353),
+			Vector3.new(x, 9.5, 228.5),
+			COLORS.wood,
+			true,
+			nil,
+			nil,
+			Enum.Material.WoodPlanks
+		)
+		part(
+			walls,
+			"WallCap",
+			Vector3.new(3.4, 0.6, 354),
+			Vector3.new(x, 10.8, 228.5),
+			COLORS.woodLight,
+			true,
+			nil,
+			nil,
+			Enum.Material.Wood
+		)
+		for index = 0, 7 do
+			local z = 52 + index * 50
+			part(
+				walls,
+				"Buttress",
+				Vector3.new(3.6, 11.3, 3.3),
+				Vector3.new(x, 5.65, z),
+				COLORS.stoneLight,
+				true,
+				nil,
+				nil,
+				Enum.Material.Slate
+			)
+			part(
+				walls,
+				"ButtressCap",
+				Vector3.new(4, 0.6, 3.8),
+				Vector3.new(x, 11.6, z),
+				COLORS.wood,
+				false,
+				nil,
+				nil,
+				Enum.Material.Wood
+			)
+		end
+	end
+	part(
+		walls,
+		"EndWall",
+		Vector3.new(100, 10.5, 2.5),
+		Vector3.new(0, 5.25, 405),
+		COLORS.stone,
+		true,
+		nil,
+		nil,
+		Enum.Material.Cobblestone
+	)
+	part(
+		walls,
+		"EndWallCap",
+		Vector3.new(101, 0.7, 3.4),
+		Vector3.new(0, 10.85, 405),
+		COLORS.woodLight,
+		true,
+		nil,
+		nil,
+		Enum.Material.Wood
+	)
+
 	local decor = folder("Decorations", root)
 	for index = 1, 10 do
-		local z = -235 + index * 63
-		tree(decor, -153, z, 0.8 + (index % 3) * 0.16)
-		tree(decor, 151, z + 18, 0.95 + (index % 2) * 0.18)
+		local z = -255 + index * 67
+		tree(decor, -146 - (index % 3) * 6, z, 1 + (index % 3) * 0.18)
+		tree(decor, 143 + (index % 2) * 9, z + 21, 1.15 + (index % 2) * 0.2)
 	end
-	for _, z in ipairs({ 72, 220, 395 }) do
-		shrubs(decor, -51, z)
-		shrubs(decor, 51, z)
+	for _, z in ipairs({ 77, 220, 385 }) do
+		for _, side in ipairs({ -1, 1 }) do
+			tree(decor, side * 65, z, 1.2)
+			shrubs(decor, side * 38, z, nil, 1.05)
+			lamp(decor, Vector3.new(side * 41, 0, z - 8))
+		end
 	end
-	for _, x in ipairs({ -48, 48 }) do
-		part(decor, "WelcomeArchPost", Vector3.new(2, 17, 2), Vector3.new(x, 8.5, 52), COLORS.wood, false)
+	for _, z in ipairs({ -150, -57, 24 }) do
+		for _, side in ipairs({ -1, 1 }) do
+			lamp(decor, Vector3.new(side * 16, 0, z))
+		end
 	end
-	local arch =
-		part(decor, "WelcomeArch", Vector3.new(100, 5, 2), Vector3.new(0, 16, 52), COLORS.mint, false)
-	textLabel(
-		billboard(arch, "Welcome", 520, 65, Vector3.zero, 180),
-		"Title",
+	for _, x in ipairs({ -36, 36 }) do
+		part(
+			decor,
+			"WelcomeArchPost",
+			Vector3.new(2.3, 14.5, 2.3),
+			Vector3.new(x, 7.25, 52),
+			COLORS.wood,
+			true,
+			nil,
+			nil,
+			Enum.Material.Wood
+		)
+		part(
+			decor,
+			"WelcomeFoot",
+			Vector3.new(3.5, 2.5, 3.5),
+			Vector3.new(x, 1.25, 52),
+			COLORS.stoneLight,
+			true,
+			nil,
+			nil,
+			Enum.Material.Slate
+		)
+		planter(decor, Vector3.new(x, 0, 47), COLORS.gold)
+	end
+	part(
+		decor,
+		"WelcomeArchBeam",
+		Vector3.new(77, 1.8, 2.5),
+		Vector3.new(0, 14, 52),
+		COLORS.wood,
+		false,
+		nil,
+		nil,
+		Enum.Material.Wood
+	)
+	plaque(
+		decor,
+		"Welcome",
+		Vector3.new(0, 12.5, 50.4),
 		"STEAL A GOOFY EGG",
-		COLORS.white
+		COLORS.ink,
+		28,
+		3.2,
+		nil,
+		65,
+		43
 	)
 	sign(
 		decor,
 		"HowTo",
-		Vector3.new(-65, 0, 41),
-		"STEAL → ESCAPE → HATCH\nBring eggs to your base!",
+		Vector3.new(-27, 0, 40),
+		"STEAL • ESCAPE • HATCH\nBring an egg home",
 		COLORS.ink,
-		23,
-		80
+		16,
+		45
 	)
 	sign(
 		decor,
 		"Route",
-		Vector3.new(65, 0, 41),
-		"FOLLOW THE PATH\nSneak past the guardians!",
+		Vector3.new(27, 0, 40),
+		"GUARDIAN GARDENS\nFollow the stone path",
 		COLORS.ink,
-		23,
-		80
+		16,
+		45
 	)
-	for _, z in ipairs({ 86, 232, 389 }) do
-		local arrow = part(
-			decor,
-			"RouteArrow",
-			Vector3.new(0.35, 0.06, 4),
-			Vector3.new(0, 0.21, z),
-			COLORS.white,
-			false
-		)
-		arrow.Transparency = 0.1
+	for _, z in ipairs({ 65, 210, 230, 383 }) do
 		for _, side in ipairs({ -1, 1 }) do
 			part(
 				decor,
-				"ArrowTip",
-				Vector3.new(0.35, 0.06, 2.6),
-				Vector3.new(side * 0.85, 0.21, z + 1.05),
-				COLORS.white,
+				"RouteChevron",
+				Vector3.new(0.6, 0.08, 3.8),
+				Vector3.new(side * 1.1, 0.27, z),
+				COLORS.cream,
 				false,
 				nil,
-				CFrame.Angles(0, math.rad(side * -43), 0)
+				CFrame.Angles(0, side * -0.62, 0)
 			)
 		end
+	end
+	-- A distant planted end to the route, rather than another empty white slab.
+	for _, x in ipairs({ -33, -22, 22, 33 }) do
+		shrubs(decor, x, 397, nil, 1.35)
+	end
+	sign(decor, "GardenEnd", Vector3.new(0, 0, 399), "MORE GARDENS COMING SOON", COLORS.ink, 25, 45)
+end
+
+local function fence(parent, center, color)
+	part(
+		parent,
+		"BackStoneEdge",
+		Vector3.new(64, 1.3, 1.5),
+		center + Vector3.new(0, 0.65, -27.5),
+		COLORS.stone,
+		true,
+		nil,
+		nil,
+		Enum.Material.Slate
+	)
+	for _, side in ipairs({ -1, 1 }) do
+		part(
+			parent,
+			"SideStoneEdge",
+			Vector3.new(1.5, 1.3, 56),
+			center + Vector3.new(side * 31.5, 0.65, 0),
+			COLORS.stone,
+			true,
+			nil,
+			nil,
+			Enum.Material.Slate
+		)
+		for _, y in ipairs({ 2, 3.4 }) do
+			part(
+				parent,
+				"SideFenceRail",
+				Vector3.new(0.5, 0.65, 56),
+				center + Vector3.new(side * 31.5, y, 0),
+				COLORS.woodLight,
+				true,
+				nil,
+				nil,
+				Enum.Material.Wood
+			)
+			part(
+				parent,
+				"FrontFenceRail",
+				Vector3.new(19.5, 0.65, 0.5),
+				center + Vector3.new(side * 21.5, y, 27.5),
+				COLORS.woodLight,
+				true,
+				nil,
+				nil,
+				Enum.Material.Wood
+			)
+		end
+		for _, z in ipairs({ -27, -13.5, 0, 13.5, 27 }) do
+			part(
+				parent,
+				"FencePost",
+				Vector3.new(1, 4.5, 1),
+				center + Vector3.new(side * 31.5, 2.25, z),
+				COLORS.wood,
+				true,
+				nil,
+				nil,
+				Enum.Material.Wood
+			)
+		end
+		part(
+			parent,
+			"EntrancePost",
+			Vector3.new(1.6, 5, 1.6),
+			center + Vector3.new(side * 12, 2.5, 27.5),
+			COLORS.wood,
+			true,
+			nil,
+			nil,
+			Enum.Material.Wood
+		)
+		part(
+			parent,
+			"EntranceCap",
+			Vector3.new(2, 0.5, 2),
+			center + Vector3.new(side * 12, 5.2, 27.5),
+			color,
+			false
+		)
 	end
 end
 
@@ -1667,75 +2432,262 @@ local function buildBase(config, parent, id, position)
 	baseModel:SetAttribute("OwnerUserId", 0)
 	local center = Vector3.new(position.x, 0, position.z)
 	local color = BASE_COLORS[id] or COLORS.mint
-	part(baseModel, "Foundation", Vector3.new(64, 0.9, 56), center + Vector3.new(0, 0.05, 0), color, true)
-	part(baseModel, "Floor", Vector3.new(61, 0.12, 53), center + Vector3.new(0, 0.56, 0), COLORS.edge, true)
-	part(baseModel, "BackRail", Vector3.new(64, 2, 1), center + Vector3.new(0, 1.45, -27.5), color, true)
+	part(
+		baseModel,
+		"Foundation",
+		Vector3.new(64, 0.7, 56),
+		center + Vector3.new(0, 0.25, 0),
+		COLORS.stone,
+		true,
+		nil,
+		nil,
+		Enum.Material.Slate
+	)
+	part(
+		baseModel,
+		"LivingLawn",
+		Vector3.new(60, 0.2, 52),
+		center + Vector3.new(0, 0.7, 0),
+		COLORS.lawn,
+		true,
+		nil,
+		nil,
+		Enum.Material.Grass
+	)
+	fence(baseModel, center, color)
+	trail(baseModel, "EntranceWalk", center + Vector3.new(0, 0.2, 31), Vector3.new(13, 0.25, 13))
+	part(
+		baseModel,
+		"EntranceStep",
+		Vector3.new(13, 0.45, 4),
+		center + Vector3.new(0, 0.42, 26),
+		COLORS.path,
+		true,
+		nil,
+		nil,
+		Enum.Material.Sandstone
+	)
 	for _, side in ipairs({ -1, 1 }) do
+		planter(baseModel, center + Vector3.new(side * 24, 0.6, 24), color)
+		shrubs(baseModel, center.X + side * 27, center.Z - 22, COLORS.leaf, 0.8)
+	end
+
+	-- The covered rear hatch nook keeps the central lawn open for roaming pets.
+	part(
+		baseModel,
+		"HatchDeck",
+		Vector3.new(56, 0.45, 17),
+		center + Vector3.new(0, 0.97, -16.5),
+		COLORS.woodLight,
+		true,
+		nil,
+		nil,
+		Enum.Material.WoodPlanks
+	)
+	for _, side in ipairs({ -1, 1 }) do
+		for _, z in ipairs({ -24, -9 }) do
+			part(
+				baseModel,
+				"HatchPergolaPost",
+				Vector3.new(1, 7.5, 1),
+				center + Vector3.new(side * 27, 4.6, z),
+				COLORS.wood,
+				true,
+				nil,
+				nil,
+				Enum.Material.Wood
+			)
+		end
+	end
+	for _, z in ipairs({ -24, -9 }) do
 		part(
 			baseModel,
-			"SideRail",
-			Vector3.new(1, 2, 56),
-			center + Vector3.new(side * 31.5, 1.45, 0),
-			color,
-			true
-		)
-		part(
-			baseModel,
-			"EntrancePost",
-			Vector3.new(1.5, 6, 1.5),
-			center + Vector3.new(side * 12, 3, 27),
-			color,
-			false
+			"HatchPergolaBeam",
+			Vector3.new(58, 0.9, 1.3),
+			center + Vector3.new(0, 8.1, z),
+			COLORS.wood,
+			false,
+			nil,
+			nil,
+			Enum.Material.Wood
 		)
 	end
-	local ownerSign =
-		sign(baseModel, "OwnerSign", center + Vector3.new(0, 0, -26), "UNCLAIMED BASE", color, 25, 125)
+	for x = -24, 24, 8 do
+		part(
+			baseModel,
+			"PergolaSlat",
+			Vector3.new(1, 0.5, 18),
+			center + Vector3.new(x, 8.5, -16.5),
+			COLORS.woodLight,
+			false,
+			nil,
+			nil,
+			Enum.Material.Wood
+		)
+	end
+	local ownerSign = plaque(
+		baseModel,
+		"OwnerSign",
+		center + Vector3.new(0, 6.1, -25),
+		"AVAILABLE RANCH",
+		color:Lerp(COLORS.ink, 0.55),
+		25,
+		2.8,
+		CFrame.Angles(0, math.pi, 0),
+		60,
+		37
+	)
 	local hatchFolder = folder("Hatches", baseModel)
 	local animalFolder = folder("Animals", baseModel)
 	local slots = {}
 	for index = 1, config.hatchSlots do
-		local x = (index - (config.hatchSlots + 1) / 2) * 18
-		local slot =
-			disc(baseModel, "HatchSlot_" .. index, 9.3, 0.3, center + Vector3.new(x, 0.78, -12), color, false)
+		local x = (index - (config.hatchSlots + 1) / 2) * 17
+		disc(
+			baseModel,
+			"NestRim_" .. index,
+			7.8,
+			0.6,
+			center + Vector3.new(x, 1.43, -15),
+			COLORS.wood,
+			false,
+			Enum.Material.Wood
+		)
+		local slot = disc(
+			baseModel,
+			"HatchSlot_" .. index,
+			6.9,
+			0.16,
+			center + Vector3.new(x, 1.77, -15),
+			COLORS.gold,
+			false,
+			Enum.Material.Fabric
+		)
 		slot:SetAttribute("SlotIndex", index)
 		slots[index] = slot
-		local gui = billboard(slot, "SlotLabel", 120, 25, Vector3.new(0, 0.55, 0), 46)
-		textLabel(gui, "Title", "HATCH " .. index, COLORS.ink).TextStrokeTransparency = 1
+		for twig = 1, 6 do
+			local angle = twig * math.pi / 3
+			part(
+				baseModel,
+				"NestStraw",
+				Vector3.new(0.2, 0.16, 3),
+				center + Vector3.new(x + math.cos(angle) * 2.4, 1.89, -15 + math.sin(angle) * 2.4),
+				COLORS.cream:Lerp(COLORS.gold, 0.5),
+				false,
+				nil,
+				CFrame.Angles(0, -angle, 0)
+			)
+		end
+		plaque(
+			baseModel,
+			"HatchNumber_" .. index,
+			center + Vector3.new(x, 2.05, -10.2),
+			"NEST " .. index,
+			COLORS.ink,
+			5.5,
+			1.3,
+			CFrame.Angles(0, math.pi, 0),
+			35,
+			29
+		)
 	end
 	local animalSpots = {}
 	for index = 1, config.maxAnimals do
 		local column = (index - 1) % 4
 		local row = math.floor((index - 1) / 4)
-		local x = (column - 1.5) * 12
-		local z = 5 + row * 9
-		disc(
-			baseModel,
-			"AnimalSpot_" .. index,
-			6.6,
-			0.18,
-			center + Vector3.new(x, 0.73, z),
-			color:Lerp(COLORS.white, 0.55),
-			false
-		)
-		animalSpots[index] = CFrame.new(center + Vector3.new(x, 0.85, z)) * CFrame.Angles(0, math.pi, 0)
+		animalSpots[index] = CFrame.new(center + Vector3.new((column - 1.5) * 11, 0.85, 4 + row * 10))
+			* CFrame.Angles(0, math.pi, 0)
 	end
-	local deposit =
-		disc(baseModel, "DepositPad", 9, 0.25, center + Vector3.new(0, 0.79, 0), COLORS.mint, false)
-	local depositPrompt = prompt(deposit, "DepositEgg", "Hatch egg", "Your hatchery", 0.35)
-	local depositGui = billboard(deposit, "DepositLabel", 170, 42, Vector3.new(0, 2.5, 0), 50)
-	textLabel(depositGui, "Title", "BRING EGG HERE", COLORS.white)
-	local shop =
-		part(baseModel, "SpeedShop", Vector3.new(5, 3, 4), center + Vector3.new(-24, 2.1, 20), color, false)
-	part(
+	local deposit = disc(
 		baseModel,
-		"ShopTop",
-		Vector3.new(6, 0.45, 5),
-		center + Vector3.new(-24, 3.85, 20),
-		COLORS.ink,
+		"DepositPad",
+		8,
+		0.14,
+		center + Vector3.new(0, 0.89, 0),
+		COLORS.path,
+		false,
+		Enum.Material.Sandstone
+	)
+	disc(
+		baseModel,
+		"DepositInlay",
+		6.8,
+		0.05,
+		center + Vector3.new(0, 0.99, 0),
+		color:Lerp(COLORS.cream, 0.3),
 		false
 	)
-	local shopGui = billboard(shop, "ShopLabel", 160, 52, Vector3.new(0, 3.4, 0), 65)
-	textLabel(shopGui, "Title", "SPEED SHOP\nRun a little faster", COLORS.white)
+	local depositPrompt = prompt(deposit, "DepositEgg", "Hatch egg", "Your hatchery", 0.35)
+	plaque(
+		baseModel,
+		"DepositDirections",
+		center + Vector3.new(0, 3.1, -8.1),
+		"BRING YOUR EGG HERE",
+		COLORS.ink,
+		13,
+		1.5,
+		CFrame.Angles(0, math.pi, 0),
+		40,
+		28
+	)
+
+	local shopPosition = center + Vector3.new(-27, 0, -3.5)
+	local shop = part(
+		baseModel,
+		"SpeedShop",
+		Vector3.new(5, 3, 4.5),
+		shopPosition + Vector3.new(0, 2.3, 0),
+		COLORS.woodLight,
+		false,
+		nil,
+		nil,
+		Enum.Material.WoodPlanks
+	)
+	part(
+		baseModel,
+		"ShopCounter",
+		Vector3.new(6, 0.4, 5.2),
+		shopPosition + Vector3.new(0, 4, 0),
+		COLORS.wood,
+		false,
+		nil,
+		nil,
+		Enum.Material.Wood
+	)
+	for _, side in ipairs({ -1, 1 }) do
+		part(
+			baseModel,
+			"KioskPost",
+			Vector3.new(0.4, 5.7, 0.4),
+			shopPosition + Vector3.new(side * 2.5, 3.55, 1.7),
+			COLORS.wood,
+			false,
+			nil,
+			nil,
+			Enum.Material.Wood
+		)
+	end
+	part(
+		baseModel,
+		"KioskAwning",
+		Vector3.new(6.2, 0.45, 5.8),
+		shopPosition + Vector3.new(0, 6.5, 0),
+		color,
+		false,
+		nil,
+		CFrame.Angles(0.12, 0, 0)
+	)
+	plaque(
+		baseModel,
+		"SpeedShopSign",
+		shopPosition + Vector3.new(0, 5.3, 2.55),
+		"SPEED",
+		COLORS.ink,
+		5.6,
+		1.5,
+		CFrame.Angles(0, math.pi, 0),
+		40,
+		31
+	)
 	local upgradePrompt = prompt(shop, "UpgradeSpeed", "Upgrade speed", "Speed shop", 0.35)
 	return {
 		id = id,
@@ -1758,46 +2710,156 @@ local function buildZone(parent, zone)
 	zoneModel:SetAttribute("ZoneId", zone.id)
 	local color = colorFrom(zone.color)
 	local center = Vector3.new(zone.position.x, 0, zone.position.z)
+	local halfWidth = zone.arenaHalfWidth or 46
+	local halfDepth = zone.arenaHalfDepth or 55
+	local courtColor = zone.guardian == "turtle" and Color3.fromRGB(112, 142, 85)
+		or Color3.fromRGB(137, 133, 117)
 	part(
 		zoneModel,
 		"ZoneCourt",
-		Vector3.new(85, 0.15, 86),
-		center + Vector3.new(0, 0.15, 0),
-		color:Lerp(COLORS.white, 0.65),
-		true
+		Vector3.new(halfWidth * 2, 0.16, halfDepth * 2),
+		center + Vector3.new(0, 0.18, 0),
+		courtColor,
+		true,
+		nil,
+		nil,
+		Enum.Material.Grass
 	)
+	part(
+		zoneModel,
+		"CourtWalk",
+		Vector3.new(24, 0.15, halfDepth * 2),
+		center + Vector3.new(0, 0.29, 0),
+		COLORS.path,
+		true,
+		nil,
+		nil,
+		Enum.Material.Cobblestone
+	)
+	-- These visible strips match the server's rectangular chase boundary exactly.
 	for _, side in ipairs({ -1, 1 }) do
 		part(
 			zoneModel,
-			"ZoneEdge",
-			Vector3.new(1.2, 0.6, 86),
-			center + Vector3.new(side * 43, 0.3, 0),
-			color,
+			"RedSideBoundary",
+			Vector3.new(0.9, 0.12, halfDepth * 2),
+			center + Vector3.new(side * halfWidth, 0.34, 0),
+			COLORS.red,
 			false
 		)
-		shrubs(zoneModel, center.X + side * 55, center.Z - 23, color:Lerp(COLORS.leaf, 0.6))
+		part(
+			zoneModel,
+			"RedEscapeLine",
+			Vector3.new(halfWidth * 2, 0.12, 1.4),
+			center + Vector3.new(0, 0.44, side * halfDepth),
+			COLORS.red,
+			false
+		)
+		for stripe = -4, 4 do
+			part(
+				zoneModel,
+				"BoundaryDash",
+				Vector3.new(3, 0.08, 0.45),
+				center + Vector3.new(stripe * 9, 0.47, side * halfDepth + side * 1.5),
+				COLORS.cream,
+				false
+			)
+		end
+		shrubs(zoneModel, center.X + side * 39, center.Z + 25, color:Lerp(COLORS.leaf, 0.75), 1.2)
+		shrubs(zoneModel, center.X + side * 39, center.Z - 18, nil, 0.95)
+		for rock = 1, 3 do
+			part(
+				zoneModel,
+				"GardenRock",
+				Vector3.new(3 + rock, 2 + rock * 0.5, 3.5),
+				center + Vector3.new(side * (35 + rock * 2), 0.8, 35 + rock * 2),
+				COLORS.stoneLight,
+				false,
+				Enum.PartType.Ball,
+				CFrame.Angles(0, rock, 0)
+			)
+		end
 	end
-	local levelText = zone.requiredLevel > 1 and (" · LEVEL " .. zone.requiredLevel) or " · START HERE"
+	local levelText = zone.requiredLevel > 0 and ("SPEED LEVEL " .. zone.requiredLevel) or "YOUR FIRST HEIST"
 	sign(
 		zoneModel,
 		"ZoneSign",
-		center + Vector3.new(-26, 0, -35),
-		string.upper(zone.name) .. levelText,
-		color,
-		26,
-		110
+		center + Vector3.new(-27, 0, -halfDepth - 4),
+		string.upper(zone.name) .. "\n" .. levelText,
+		color:Lerp(COLORS.ink, 0.65),
+		24,
+		60
 	)
-	local eggPosition = center + Vector3.new(0, 2.5, 0)
-	disc(zoneModel, "EggPlinth", 9, 1.1, center + Vector3.new(0, 0.75, 0), COLORS.edge, true)
-	disc(zoneModel, "EggRing", 10, 0.15, center + Vector3.new(0, 0.32, 0), color, false)
+	sign(
+		zoneModel,
+		"EscapeSign",
+		center + Vector3.new(27, 0, -halfDepth - 4),
+		"CROSS RED LINE TO ESCAPE\nGuardians stay in this garden",
+		COLORS.ink,
+		24,
+		55
+	)
+	-- The back face is useful while running home with an egg.
+	plaque(
+		zoneModel,
+		"EscapeReturnSign",
+		center + Vector3.new(27, 4.4, -halfDepth - 3.5),
+		"CROSS RED LINE\nSAFE BEYOND THIS GARDEN",
+		COLORS.ink,
+		24,
+		3,
+		CFrame.Angles(0, math.pi, 0),
+		55,
+		34
+	)
+	disc(
+		zoneModel,
+		"EggPlinth",
+		8.5,
+		0.75,
+		center + Vector3.new(0, 0.65, 0),
+		COLORS.stoneLight,
+		true,
+		Enum.Material.Slate
+	)
+	disc(
+		zoneModel,
+		"EggNest",
+		7,
+		0.25,
+		center + Vector3.new(0, 1.15, 0),
+		COLORS.woodLight,
+		false,
+		Enum.Material.Wood
+	)
+	disc(
+		zoneModel,
+		"EggStraw",
+		5.5,
+		0.15,
+		center + Vector3.new(0, 1.36, 0),
+		COLORS.gold,
+		false,
+		Enum.Material.Fabric
+	)
+	for twig = 1, 8 do
+		local angle = twig * math.pi / 4
+		part(
+			zoneModel,
+			"WildNestTwig",
+			Vector3.new(0.3, 0.3, 2.8),
+			center + Vector3.new(math.cos(angle) * 3.1, 1.46, math.sin(angle) * 3.1),
+			COLORS.wood,
+			false,
+			nil,
+			CFrame.Angles(0, -angle, 0)
+		)
+	end
 	local egg = AnimalFactory.egg(zone.color, "WildEgg")
 	egg:SetAttribute("ZoneId", zone.id)
 	egg:SetAttribute("Available", true)
-	egg:PivotTo(CFrame.new(eggPosition))
+	egg:PivotTo(CFrame.new(center + Vector3.new(0, 2.9, 0)))
 	egg.Parent = zoneModel
 	local stealPrompt = prompt(egg.PrimaryPart, "StealEgg", "Steal egg", zone.name, 0.65)
-	local eggGui = billboard(egg.PrimaryPart, "EggBillboard", 190, 43, Vector3.new(0, 3, 0), 72)
-	textLabel(eggGui, "Title", "GOOFY EGG\nGrab it. Run!", COLORS.white)
 	local homePosition = center + Vector3.new(zone.guardianOffset or 20, 0.3, 0)
 	local home = CFrame.lookAt(homePosition, Vector3.new(center.X, homePosition.Y, center.Z))
 	local guardian = AnimalFactory.create(zone.guardian, zone.color, "Guardian")
@@ -1807,19 +2869,10 @@ local function buildZone(parent, zone)
 	guardian:SetAttribute("HomeX", homePosition.X)
 	guardian:SetAttribute("HomeY", homePosition.Y)
 	guardian:SetAttribute("HomeZ", homePosition.Z)
-	guardian:ScaleTo(1.65)
+	guardian:ScaleTo(zone.guardian == "rabbit" and 2.2 or 2.1)
+	guardian:SetAttribute("RigScale", guardian:GetScale())
 	guardian:PivotTo(home)
 	guardian.Parent = zoneModel
-	local guardianGui = billboard(
-		guardian.PrimaryPart,
-		"GuardianBillboard",
-		180,
-		48,
-		Vector3.new(0, zone.guardian == "rabbit" and 7.5 or 4.5, 0),
-		85
-	)
-	textLabel(guardianGui, "Title", string.upper(zone.guardian) .. " GUARDIAN", COLORS.white, 0, 0.56)
-	textLabel(guardianGui, "State", "Protecting the egg", COLORS.white, 0.6, 0.4)
 	return {
 		config = zone,
 		home = home,
@@ -1855,7 +2908,7 @@ function World:setBaseOwner(baseId, player)
 		return
 	end
 	base.model:SetAttribute("OwnerUserId", player and player.UserId or 0)
-	base.sign.Text = player and (player.DisplayName .. "'S BASE") or "UNCLAIMED BASE"
+	base.sign.Text = player and (player.DisplayName .. "'S RANCH") or "AVAILABLE RANCH"
 	base.depositPrompt.ObjectText = player and (player.DisplayName .. "'s hatchery") or "Unclaimed hatchery"
 	if not player then
 		for index = 1, self.config.hatchSlots do
@@ -1878,18 +2931,38 @@ function World:showHatch(baseId, slotIndex, zoneId, readyAt)
 	egg:SetAttribute("ZoneId", zoneId)
 	egg:SetAttribute("BaseId", baseId)
 	egg:SetAttribute("SlotIndex", slotIndex)
-	egg:PivotTo(CFrame.new(base.slots[slotIndex].Position + Vector3.new(0, 2, 0)))
-	egg.Parent = base.hatchFolder
-	local gui = billboard(egg.PrimaryPart, "HatchBillboard", 190, 64, Vector3.new(0, 3.4, 0), 85)
-	textLabel(gui, "Title", zone.config.name, COLORS.white, 0, 0.5)
+	local slotPosition = base.slots[slotIndex].Position
+	egg:PivotTo(CFrame.new(slotPosition + Vector3.new(0, 1.65, 0)))
+	-- A separate fixed board is a child of the egg for countdown discovery/cleanup.
+	-- It is never attached to the moving shell or turned toward the camera.
+	local _, board = plaque(
+		egg,
+		"HatchStatus",
+		slotPosition + Vector3.new(0, 2, -5.1),
+		zone.config.name,
+		COLORS.ink,
+		9,
+		2.6,
+		CFrame.Angles(0, math.pi, 0),
+		40,
+		29
+	)
+	local gui = board:FindFirstChild("HatchStatusLettering")
+	local title = gui and gui:FindFirstChild("Title")
+	if title then
+		title.Size = UDim2.fromScale(0.94, 0.45)
+		title.Position = UDim2.fromScale(0.03, 0.05)
+	end
 	textLabel(
 		gui,
 		"Countdown",
 		math.max(0, math.ceil(readyAt - workspace:GetServerTimeNow())) .. "s",
 		COLORS.mint,
-		0.53,
-		0.47
+		0.52,
+		0.42,
+		36
 	)
+	egg.Parent = base.hatchFolder
 	base.hatches[slotIndex] = egg
 end
 
@@ -1920,14 +2993,17 @@ function World:setAnimals(baseId, animals)
 			animal:SetAttribute("BaseId", baseId)
 			animal:SetAttribute("SlotIndex", index)
 			animal:SetAttribute("Personality", animalConfig.personality)
+			animal:SetAttribute("VisualRole", "Animal")
+			animal:SetAttribute("RoamCenterX", base.center.X)
+			animal:SetAttribute("RoamCenterY", 0.85)
+			animal:SetAttribute("RoamCenterZ", base.center.Z + 8.5)
+			animal:SetAttribute("RoamHalfX", 23)
+			animal:SetAttribute("RoamHalfZ", 10.5)
+			animal:SetAttribute("RoamSeed", baseId * 100 + index)
+			animal:ScaleTo(1.3)
+			animal:SetAttribute("RigScale", animal:GetScale())
 			animal:PivotTo(spot)
 			animal.Parent = base.animalFolder
-			local rarity = self.config.rarities[animalConfig.rarity]
-			local rarityColor = rarity and colorFrom(rarity.color) or COLORS.white
-			local gui = billboard(animal.PrimaryPart, "AnimalBillboard", 148, 59, Vector3.new(0, 4.6, 0), 65)
-			textLabel(gui, "Title", animalConfig.name, COLORS.white, 0, 0.36)
-			textLabel(gui, "Rarity", animalConfig.rarity, rarityColor, 0.38, 0.27)
-			textLabel(gui, "Income", "$" .. animalConfig.income .. "/s", COLORS.mint, 0.7, 0.3)
 		end
 	end
 end
@@ -1945,8 +3021,6 @@ function World:setEggAvailable(zoneId, available)
 				descendant:SetAttribute("OriginalTransparency", descendant.Transparency)
 			end
 			descendant.Transparency = available and descendant:GetAttribute("OriginalTransparency") or 1
-		elseif descendant:IsA("BillboardGui") then
-			descendant.Enabled = available
 		end
 	end
 end
@@ -1963,25 +3037,25 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="SoundService" referent="18">
+  <Item class="SoundService" referent="22">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>
     </Properties>
   </Item>
-  <Item class="StarterGui" referent="19">
+  <Item class="StarterGui" referent="23">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
-    <Item class="Folder" referent="20">
+    <Item class="Folder" referent="24">
       <Properties>
         <string name="Name">GoofyUI</string>
       </Properties>
-      <Item class="ModuleScript" referent="21">
+      <Item class="ModuleScript" referent="25">
         <Properties>
           <string name="Name">Hud</string>
           <string name="Source"><![CDATA[--!nonstrict
--- All artwork is made from Roblox UI primitives. No image or audio assets are required.
+-- Original interface artwork uses Roblox UI primitives; gameplay remains server-authoritative.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -1991,14 +3065,14 @@ local Hud = {}
 Hud.__index = Hud
 
 local C = {
-	ink = Color3.fromRGB(39, 37, 63),
-	muted = Color3.fromRGB(113, 110, 132),
-	paper = Color3.fromRGB(255, 253, 248),
+	ink = Color3.fromRGB(37, 49, 45),
+	muted = Color3.fromRGB(105, 119, 109),
+	paper = Color3.fromRGB(251, 248, 238),
 	blue = Color3.fromRGB(91, 153, 255),
 	lilac = Color3.fromRGB(187, 156, 255),
-	mint = Color3.fromRGB(151, 231, 175),
-	yellow = Color3.fromRGB(255, 216, 105),
-	pink = Color3.fromRGB(255, 151, 171),
+	mint = Color3.fromRGB(161, 213, 170),
+	yellow = Color3.fromRGB(240, 204, 111),
+	pink = Color3.fromRGB(228, 144, 121),
 }
 
 local function make(class, properties, parent)
@@ -2011,22 +3085,24 @@ local function make(class, properties, parent)
 end
 
 local function round(parent, radius)
-	return make("UICorner", { CornerRadius = UDim.new(0, radius or 16) }, parent)
+	return make("UICorner", { CornerRadius = UDim.new(0, radius or 12) }, parent)
 end
 
 local function border(parent, color, thickness)
-	return make(
-		"UIStroke",
-		{ Color = color or C.ink, Thickness = thickness or 2, Transparency = 0.08 },
-		parent
-	)
+	return make("UIStroke", {
+		Color = color or C.ink,
+		Thickness = thickness or 1,
+		Transparency = 0.82,
+		-- Contextual mode strokes TextButton letters, making the text illegible.
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, parent)
 end
 
 local function label(parent, text, size, color, position, dimensions, bold)
 	return make("TextLabel", {
 		BackgroundTransparency = 1,
 		Text = text,
-		Font = if bold then Enum.Font.GothamBold else Enum.Font.Gotham,
+		Font = if bold then Enum.Font.GothamMedium else Enum.Font.Gotham,
 		TextSize = size,
 		TextColor3 = color or C.ink,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -2166,25 +3242,31 @@ function Hud:_connect(signal, callback)
 	return connection
 end
 
+function Hud:_sound(cue)
+	if self.sfxEnabled and self.callbacks.sound then
+		self.callbacks.sound(cue)
+	end
+end
+
 function Hud:_button(parent, text, color, position, dimensions, callback)
 	local button = make("TextButton", {
 		Text = text,
 		TextColor3 = C.ink,
-		TextSize = 16,
-		Font = Enum.Font.GothamBold,
+		TextSize = 14,
+		Font = Enum.Font.GothamMedium,
 		BackgroundColor3 = color,
 		BorderSizePixel = 0,
 		Position = position,
 		Size = dimensions,
 		AutoButtonColor = true,
 	}, parent)
-	round(button, 12)
-	border(button, C.ink, 1.5)
-	-- Activated works for mouse, touch, and gamepad selection.
+	round(button, 11)
+	border(button)
 	self:_connect(button.Activated, function()
 		if self.destroyed then
 			return
 		end
+		self:_sound("ui")
 		callback()
 	end)
 	return button
@@ -2192,7 +3274,7 @@ end
 
 function Hud:_action(action)
 	if not self.state then
-		self:notice({ text = "Your base is still loading. One moment!", kind = "info" })
+		self:notice({ text = "Finding your garden. One moment!", kind = "info" })
 		return
 	end
 	local now = os.clock()
@@ -2200,14 +3282,18 @@ function Hud:_action(action)
 		return
 	end
 	self.lastAction = now
-	-- The UI only requests an action. Price, distance, and rewards are server decisions.
+	-- Prices, distance checks, and rewards always belong to the server.
 	self.callbacks.action(action)
+end
+
+function Hud:_closeMenu()
+	self.modal.Visible = false
+	self.activePanel = nil
 end
 
 function Hud:_open(name)
 	if self.activePanel == name and self.modal.Visible then
-		self.modal.Visible = false
-		self.activePanel = nil
+		self:_closeMenu()
 		return
 	end
 	self.activePanel = name
@@ -2216,6 +3302,43 @@ function Hud:_open(name)
 	for key, page in pairs(self.pages) do
 		page.Visible = key == name
 	end
+end
+
+-- Small original geometric icons. Labels remain available beside every icon.
+local function navigationIcon(parent, kind)
+	local icon = make("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 13),
+		Size = UDim2.fromOffset(18, 18),
+	}, parent)
+	local function shape(x, y, w, h, color)
+		local piece = make("Frame", {
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			Position = UDim2.fromOffset(x, y),
+			Size = UDim2.fromOffset(w, h),
+		}, icon)
+		round(piece, 3)
+		return piece
+	end
+	if kind == "Collection" then
+		for row = 0, 1 do
+			for col = 0, 1 do
+				shape(col * 10, row * 10, 7, 7, C.ink)
+			end
+		end
+	elseif kind == "Shop" then
+		local coin = shape(1, 1, 16, 16, C.yellow)
+		round(coin, 8)
+		border(coin, C.ink, 1.5)
+		shape(7, 5, 3, 8, C.ink)
+	else
+		for row = 0, 2 do
+			shape(1, 2 + row * 6, 16, 2, C.muted)
+			shape(if row == 1 then 10 else 4, row * 6, 4, 6, C.ink)
+		end
+	end
+	return icon
 end
 
 function Hud.new(config, callbacks)
@@ -2229,9 +3352,11 @@ function Hud.new(config, callbacks)
 	self.revealUntil = 0
 	self.reducedMotion = false
 	self.effects = true
+	self.sfxEnabled = (config.audio or {}).enabled ~= false
 	self.destroyed = false
 	self.collectionCards = {}
 	self.slotLabels = {}
+	self.navigationItems = {}
 	self.zoneById = {}
 	for _, zone in ipairs(config.zones) do
 		self.zoneById[zone.id] = zone
@@ -2246,97 +3371,89 @@ function Hud.new(config, callbacks)
 		DisplayOrder = 20,
 	}, Players.LocalPlayer:WaitForChild("PlayerGui"))
 	self.root = make("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, self.gui)
-	self.scale = make("UIScale", { Scale = 1 }, self.root)
 
-	self.brand =
-		label(self.root, "GOOFY EGG", 21, C.paper, UDim2.fromOffset(18, 12), UDim2.fromOffset(190, 30), true)
-	make("UIStroke", { Color = C.ink, Thickness = 2 }, self.brand)
-	self.sessionLabel = label(
-		self.root,
-		"PROTOTYPE · progress resets when you leave",
-		11,
-		C.paper,
-		UDim2.fromOffset(18, 41),
-		UDim2.fromOffset(370, 22),
-		true
-	)
-	make("UIStroke", { Color = C.ink, Thickness = 1.2 }, self.sessionLabel)
+	self.wallet = panel(self.root, "Wallet", C.paper, UDim2.fromOffset(12, 10), UDim2.fromOffset(214, 48))
+	local coin = make("Frame", {
+		BackgroundColor3 = C.yellow,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(11, 13),
+		Size = UDim2.fromOffset(22, 22),
+	}, self.wallet)
+	round(coin, 11)
+	local coinMark = label(coin, "$", 13, C.ink, UDim2.new(), UDim2.fromScale(1, 1), true)
+	coinMark.TextXAlignment = Enum.TextXAlignment.Center
+	self.cashLabel =
+		label(self.wallet, "$0", 18, C.ink, UDim2.fromOffset(41, 5), UDim2.new(1, -50, 0, 22), true)
+	self.incomeLabel =
+		label(self.wallet, "+$0 / sec", 12, C.muted, UDim2.fromOffset(42, 27), UDim2.new(1, -50, 0, 15))
+	self.speedChip = panel(self.root, "Speed", C.paper, UDim2.fromOffset(234, 10), UDim2.fromOffset(102, 48))
+	label(self.speedChip, "SPEED", 10, C.muted, UDim2.fromOffset(13, 7), UDim2.new(1, -20, 0, 14), true)
+	self.speedLabel =
+		label(self.speedChip, "Level 0", 15, C.ink, UDim2.fromOffset(13, 23), UDim2.new(1, -20, 0, 20), true)
 
-	self.stats = make(
-		"Frame",
-		{ BackgroundTransparency = 1, Position = UDim2.fromOffset(18, 73), Size = UDim2.fromOffset(410, 62) },
-		self.root
-	)
-	local statNames = { "CASH", "PER SECOND", "SPEED" }
-	local statColors = { C.yellow, C.mint, C.lilac }
-	self.statValues = {}
-	for index, title in ipairs(statNames) do
-		local stat = panel(
-			self.stats,
-			title,
-			statColors[index],
-			UDim2.new((index - 1) / 3, 3, 0, 0),
-			UDim2.new(1 / 3, -8, 1, 0)
-		)
-		label(stat, title, 11, C.ink, UDim2.fromOffset(12, 7), UDim2.new(1, -24, 0, 17), true)
-		self.statValues[index] =
-			label(stat, "...", 22, C.ink, UDim2.fromOffset(12, 26), UDim2.new(1, -20, 0, 27), true)
-	end
-
-	self.mission = panel(self.root, "Mission", C.paper, UDim2.fromOffset(18, 145), UDim2.fromOffset(350, 97))
-	self.missionHeading = label(
-		self.mission,
-		"LET'S GET GOOFY",
-		12,
-		C.muted,
-		UDim2.fromOffset(14, 9),
-		UDim2.new(1, -28, 0, 18),
-		true
-	)
+	self.mission = panel(self.root, "NextStep", C.paper, UDim2.fromOffset(12, 66), UDim2.fromOffset(336, 40))
+	self.mission.BackgroundTransparency = 0.08
+	self.missionDot = make("Frame", {
+		BackgroundColor3 = C.mint,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(12, 16),
+		Size = UDim2.fromOffset(8, 8),
+	}, self.mission)
+	round(self.missionDot, 4)
 	self.missionText = label(
 		self.mission,
-		"Setting up your base...",
-		15,
+		"Finding your garden...",
+		13,
 		C.ink,
-		UDim2.fromOffset(14, 30),
-		UDim2.new(1, -28, 0, 53),
-		true
+		UDim2.fromOffset(28, 4),
+		UDim2.new(1, -39, 1, -8)
 	)
 	self.missionText.TextWrapped = true
-	self.missionText.TextYAlignment = Enum.TextYAlignment.Top
 
-	self.hatching =
-		panel(self.root, "Hatching", C.paper, UDim2.fromOffset(18, 252), UDim2.fromOffset(350, 69))
-	label(self.hatching, "YOUR NEST", 11, C.muted, UDim2.fromOffset(13, 7), UDim2.new(1, -26, 0, 18), true)
+	self.hatching = make("Frame", {
+		Name = "OccupiedNests",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 114),
+		Size = UDim2.fromOffset(336, 30),
+		Visible = false,
+	}, self.root)
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, self.hatching)
 	for index = 1, config.hatchSlots do
-		local slot = label(
-			self.hatching,
-			"○ Empty",
-			12,
-			C.muted,
-			UDim2.new((index - 1) / config.hatchSlots, 12, 0, 30),
-			UDim2.new(1 / config.hatchSlots, -18, 0, 28),
-			true
-		)
+		local chip = panel(self.hatching, "Nest" .. index, C.paper, UDim2.new(), UDim2.fromOffset(105, 30))
+		chip.LayoutOrder = index
+		chip.Visible = false
+		round(chip, 9)
+		local slot = label(chip, "", 11, C.ink, UDim2.fromOffset(9, 0), UDim2.new(1, -18, 1, 0), true)
 		self.slotLabels[index] = slot
 	end
 
+	self.actionBar = make("Frame", {
+		Name = "ContextAction",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -20),
+		Size = UDim2.fromOffset(210, 44),
+	}, self.root)
 	self.upgrade = self:_button(
-		self.root,
-		"SPEED UP · ...",
-		C.lilac,
-		UDim2.fromOffset(18, 333),
-		UDim2.fromOffset(232, 48),
+		self.actionBar,
+		"Speed up  ·  ...",
+		C.mint,
+		UDim2.new(),
+		UDim2.fromScale(1, 1),
 		function()
 			self:_action("UpgradeSpeed")
 		end
 	)
 	self.deposit = self:_button(
-		self.root,
-		"DEPOSIT EGG",
+		self.actionBar,
+		"Nest egg at home",
 		C.yellow,
-		UDim2.fromOffset(18, 391),
-		UDim2.fromOffset(232, 46),
+		UDim2.new(),
+		UDim2.fromScale(1, 1),
 		function()
 			self:_action("DepositEgg")
 		end
@@ -2344,36 +3461,34 @@ function Hud.new(config, callbacks)
 	self.deposit.Visible = false
 
 	self.navigation = make("Frame", {
+		Name = "Navigation",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -18, 0, 74),
-		Size = UDim2.fromOffset(142, 172),
+		Position = UDim2.new(1, -12, 0, 12),
+		Size = UDim2.fromOffset(340, 44),
 	}, self.root)
-	for index, definition in ipairs({
-		{ "Collection", C.mint },
-		{ "Shop", C.yellow },
-		{ "Settings", C.paper },
-	}) do
-		local name = definition[1]
-		self:_button(
+	for index, name in ipairs({ "Collection", "Shop", "Settings" }) do
+		local button = self:_button(
 			self.navigation,
-			name,
-			definition[2],
-			UDim2.fromOffset(0, (index - 1) * 58),
-			UDim2.fromOffset(142, 48),
+			"",
+			C.paper,
+			UDim2.new((index - 1) / 3, 0, 0, 0),
+			UDim2.new(1 / 3, -5, 1, 0),
 			function()
 				self:_open(name)
 			end
 		)
+		button.Name = name
+		local icon = navigationIcon(button, name)
+		local caption = label(button, name, 12, C.ink, UDim2.fromOffset(36, 0), UDim2.new(1, -40, 1, 0), true)
+		table.insert(self.navigationItems, { icon = icon, caption = caption })
 	end
 
-	self.noticeFrame =
-		panel(self.root, "Notice", C.yellow, UDim2.new(0.5, 0, 0, 18), UDim2.fromOffset(430, 54))
-	self.noticeFrame.AnchorPoint = Vector2.new(0.5, 0)
+	self.noticeFrame = panel(self.root, "Notice", C.yellow, self.mission.Position, self.mission.Size)
 	self.noticeFrame.ZIndex = 80
 	self.noticeFrame.Visible = false
 	self.noticeText =
-		label(self.noticeFrame, "", 15, C.ink, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 1, -12), true)
+		label(self.noticeFrame, "", 13, C.ink, UDim2.fromOffset(12, 4), UDim2.new(1, -24, 1, -8), true)
 	self.noticeText.TextWrapped = true
 
 	self.modal = make("Frame", {
@@ -2386,34 +3501,40 @@ function Hud.new(config, callbacks)
 		Active = true,
 	}, self.root)
 	self.modalPanel =
-		panel(self.modal, "Card", C.paper, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(570, 450))
+		panel(self.modal, "MenuCard", C.paper, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(610, 490))
 	self.modalPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 	self.modalTitle = label(
 		self.modalPanel,
 		"Collection",
-		25,
+		22,
 		C.ink,
-		UDim2.fromOffset(22, 16),
-		UDim2.new(1, -100, 0, 39),
+		UDim2.fromOffset(20, 16),
+		UDim2.new(1, -95, 0, 36),
 		true
 	)
-	self:_button(self.modalPanel, "X", C.pink, UDim2.new(1, -60, 0, 16), UDim2.fromOffset(40, 40), function()
-		self.modal.Visible = false
-		self.activePanel = nil
-	end)
+	self:_button(
+		self.modalPanel,
+		"×",
+		C.paper,
+		UDim2.new(1, -58, 0, 12),
+		UDim2.fromOffset(44, 44),
+		function()
+			self:_closeMenu()
+		end
+	)
 	self.pages = {}
 	for _, name in ipairs({ "Collection", "Shop", "Settings" }) do
 		self.pages[name] = make("ScrollingFrame", {
 			Name = name,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(18, 68),
-			Size = UDim2.new(1, -36, 1, -84),
+			Position = UDim2.fromOffset(18, 66),
+			Size = UDim2.new(1, -36, 1, -82),
 			CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
-			ScrollBarThickness = 5,
-			ScrollBarImageColor3 = C.lilac,
+			ScrollBarThickness = 4,
+			ScrollBarImageColor3 = C.mint:Lerp(C.ink, 0.2),
 			Visible = false,
 		}, self.modalPanel)
 	end
@@ -2435,65 +3556,89 @@ function Hud.new(config, callbacks)
 		elapsed = 0
 		self:_tick()
 	end)
+	self:notice({ text = "Welcome! This session's progress resets when you leave.", kind = "info" })
+	self.noticeUntil = os.clock() + 6
 	return self
 end
 
 function Hud:_layout()
 	local size = self.gui.AbsoluteSize
-	local scale = if size.X < 480 then 0.82 elseif size.X < 780 then 0.9 else 1
-	if size.Y < 450 then
-		scale = math.min(scale, 0.82)
+	local width, height = math.max(size.X, 280), math.max(size.Y, 240)
+	local short = height < 440
+	-- Landscape phones have room for one compact header, but not stacked menus
+	-- and a hatch reveal. Keep the full 44px button height and omit only icons.
+	local compactLandscape = short and width >= 540
+	local compactHeader = compactLandscape and width < 700
+	local portrait = width < 700 and not compactLandscape
+	local margin = 12
+	local available = width - margin * 2
+	local walletWidth = if compactHeader then 142 elseif portrait then available - 110 else 214
+	local leftWidth = if compactLandscape
+		then math.min(336, available - 282)
+		elseif portrait then available
+		else 336
+	self.wallet.Size = UDim2.fromOffset(walletWidth, 48)
+	self.speedChip.Position = UDim2.fromOffset(margin + walletWidth + 8, 10)
+	self.mission.Size = UDim2.fromOffset(leftWidth, 40)
+	self.navigation.AnchorPoint = Vector2.new(if portrait then 0 else 1, 0)
+	self.navigation.Position = if portrait
+		then UDim2.fromOffset(margin, 114)
+		else UDim2.new(1, -margin, 0, 12)
+	self.navigation.Size =
+		UDim2.fromOffset(if compactHeader then 260 elseif portrait then available + 5 else 340, 44)
+	for _, item in ipairs(self.navigationItems) do
+		item.icon.Visible = not compactHeader
+		item.caption.Position = UDim2.fromOffset(if compactHeader then 6 else 36, 0)
+		item.caption.Size = UDim2.new(1, if compactHeader then -12 else -40, 1, 0)
+		item.caption.TextXAlignment = if compactHeader
+			then Enum.TextXAlignment.Center
+			else Enum.TextXAlignment.Left
 	end
-	self.scale.Scale = scale
-	self.root.Size = UDim2.fromScale(1 / scale, 1 / scale)
-	local width, height = size.X / scale, size.Y / scale
-	local compact = width < 650
-	self.brand.Position = UDim2.fromOffset(18, 8)
-	self.sessionLabel.Position = UDim2.fromOffset(18, 37)
-	self.stats.Size = UDim2.fromOffset(math.min(410, width - 36), 62)
-	self.stats.Position = UDim2.fromOffset(15, 69)
-	self.mission.Size = UDim2.fromOffset(if compact then math.max(210, width - 192) else 350, 97)
-	self.mission.Position = UDim2.fromOffset(18, 141)
-	self.hatching.Size = UDim2.fromOffset(if compact then math.max(210, width - 192) else 350, 69)
-	self.hatching.Position = UDim2.fromOffset(18, 249)
-	self.navigation.Position = UDim2.new(1, -18, 0, if compact then 141 else 69)
-	self.upgrade.Position = UDim2.fromOffset(18, 329)
-	self.upgrade.Size = UDim2.fromOffset(if compact then math.max(210, width - 192) else 232, 48)
-	self.deposit.Position = UDim2.fromOffset(18, 387)
-	self.deposit.Size = self.upgrade.Size
-	-- Landscape phones keep controls above the movement/jump touch controls.
-	if height < 510 and not compact then
-		self.mission.Position = UDim2.fromOffset(18, 141)
-		self.hatching.Position = UDim2.fromOffset(18, 249)
-		self.upgrade.Position = UDim2.new(1, -274, 0, 255)
-		self.deposit.Position = UDim2.new(1, -274, 0, 311)
-		self.mission.Size = UDim2.fromOffset(350, 97)
+	self.hatching.Position = UDim2.fromOffset(margin, if portrait then 166 else 114)
+	self.hatching.Size = UDim2.fromOffset(leftWidth, 30)
+	for _, slot in ipairs(self.slotLabels) do
+		local chipWidth = math.floor((math.min(leftWidth, 336) - 12) / self.config.hatchSlots)
+		slot.Parent.Size = UDim2.fromOffset(chipWidth, 30)
+		slot.TextSize = if chipWidth < 96 then 10 else 11
 	end
-	self.modalPanel.Size = UDim2.fromOffset(math.min(570, width - 30), math.min(450, height - 30))
-	self.noticeFrame.Size = UDim2.fromOffset(math.min(430, width - 36), 62)
-	self.revealCard.Size = UDim2.fromOffset(math.min(400, width - 38), math.min(400, height - 30))
-	self.collectionGrid.CellSize = UDim2.new(0.5, -8, 0, 103)
+	-- No global UIScale: phone tap targets stay 44px, text stays legible.
+	-- The lower corners are reserved for Roblox's thumbstick and jump button.
+	self.actionBar.Position = UDim2.new(0.5, 0, 1, if portrait and not short then -130 else -18)
+	if compactLandscape and height < 280 then
+		-- Very shallow Studio windows need separate columns for reveal and action.
+		self.actionBar.Position = UDim2.new(0, margin + leftWidth / 2, 1, -18)
+	end
+	self.modalPanel.Size = UDim2.fromOffset(math.min(610, available), math.min(490, height - 24))
+	self.noticeFrame.Position = self.mission.Position
+	self.noticeFrame.Size = self.mission.Size
+	self.collectionGrid.CellSize = UDim2.new(if width < 510 then 0.5 else 1 / 3, -8, 0, 168)
+	self.revealCard.Size = UDim2.fromOffset(if compactLandscape then 270 else math.min(346, available), 144)
+	if portrait then
+		self.revealCard.AnchorPoint = Vector2.new(0.5, 0)
+		self.revealCard.Position = UDim2.new(0.5, 0, 0, 204)
+	elseif short then
+		self.revealCard.AnchorPoint = Vector2.new(1, 0)
+		self.revealCard.Position = UDim2.new(1, -12, 0, 68)
+	else
+		self.revealCard.AnchorPoint = Vector2.new(0.5, 1)
+		self.revealCard.Position = UDim2.new(0.5, 0, 1, -74)
+	end
 end
 
 function Hud:_buildCollection()
 	local page = self.pages.Collection
-	self.collectionCount = label(
-		page,
-		"Discover a friend. Start a collection!",
-		14,
-		C.muted,
-		UDim2.new(),
-		UDim2.new(1, -8, 0, 30)
-	)
+	self.collectionCount =
+		label(page, "Your garden starts with one egg.", 13, C.muted, UDim2.new(), UDim2.new(1, -8, 0, 36))
+	self.collectionCount.TextWrapped = true
 	local grid = make("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(0, 42),
-		Size = UDim2.new(1, -8, 0, 0),
+		Position = UDim2.fromOffset(0, 46),
+		Size = UDim2.new(1, -6, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 	}, page)
 	self.collectionGrid = make("UIGridLayout", {
-		CellSize = UDim2.new(0.5, -8, 0, 103),
-		CellPadding = UDim2.fromOffset(12, 12),
+		CellSize = UDim2.new(1 / 3, -8, 0, 168),
+		CellPadding = UDim2.fromOffset(10, 10),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}, grid)
 	make(
@@ -2511,23 +3656,33 @@ function Hud:_buildCollection()
 		return if aOrder == bOrder then a.id < b.id else aOrder < bOrder
 	end)
 	for index, entry in ipairs(entries) do
-		local card = panel(grid, entry.id, Color3.fromRGB(243, 240, 247), UDim2.new(), UDim2.new())
+		local card = panel(grid, entry.id, C.paper:Lerp(C.muted, 0.08), UDim2.new(), UDim2.new())
 		card.LayoutOrder = index
-		local art = eggArt(card, UDim2.fromOffset(9, 19), UDim2.fromOffset(49, 64), C.lilac, true)
-		local name = label(card, "???", 14, C.ink, UDim2.fromOffset(65, 12), UDim2.new(1, -71, 0, 32), true)
+		local art = eggArt(
+			card,
+			UDim2.new(0.5, -34, 0, 9),
+			UDim2.fromOffset(68, 70),
+			C.paper:Lerp(C.muted, 0.2),
+			true
+		)
+		local name =
+			label(card, "Mystery friend", 13, C.ink, UDim2.fromOffset(8, 82), UDim2.new(1, -16, 0, 34), true)
 		name.TextWrapped = true
+		name.TextXAlignment = Enum.TextXAlignment.Center
 		local rarity = label(
 			card,
 			entry.animal.rarity,
 			11,
 			C.muted,
-			UDim2.fromOffset(65, 47),
-			UDim2.new(1, -71, 0, 19),
+			UDim2.fromOffset(8, 115),
+			UDim2.new(1, -16, 0, 18),
 			true
 		)
+		rarity.TextXAlignment = Enum.TextXAlignment.Center
 		local income =
-			label(card, "Not discovered", 10, C.muted, UDim2.fromOffset(65, 68), UDim2.new(1, -71, 0, 23))
+			label(card, "Not discovered", 11, C.muted, UDim2.fromOffset(8, 136), UDim2.new(1, -16, 0, 24))
 		income.TextWrapped = true
+		income.TextXAlignment = Enum.TextXAlignment.Center
 		self.collectionCards[entry.id] =
 			{ frame = card, name = name, rarity = rarity, income = income, art = art }
 	end
@@ -2535,58 +3690,65 @@ end
 
 function Hud:_buildShop()
 	local page = self.pages.Shop
-	local text = label(
-		page,
-		"A little faster. A little goofier.",
-		18,
-		C.ink,
-		UDim2.fromOffset(0, 0),
-		UDim2.new(1, -8, 0, 32),
+	label(page, "A little faster. A bigger adventure.", 16, C.ink, UDim2.new(), UDim2.new(1, -8, 0, 40), true).TextWrapped =
 		true
-	)
-	text.TextWrapped = true
 	self.shopSpeed =
-		label(page, "Loading your speed...", 14, C.muted, UDim2.fromOffset(0, 40), UDim2.new(1, -8, 0, 42))
+		label(page, "Finding your speed...", 13, C.muted, UDim2.fromOffset(0, 43), UDim2.new(1, -8, 0, 38))
 	self.shopSpeed.TextWrapped = true
 	self.shopUpgrade = self:_button(
 		page,
-		"UPGRADE SPEED",
-		C.lilac,
-		UDim2.fromOffset(2, 99),
-		UDim2.new(1, -12, 0, 52),
+		"Speed up",
+		C.mint,
+		UDim2.fromOffset(2, 91),
+		UDim2.new(1, -12, 0, 48),
 		function()
 			self:_action("UpgradeSpeed")
 		end
 	)
-	local progression =
-		label(page, "ZONE GUIDE", 12, C.muted, UDim2.fromOffset(0, 172), UDim2.new(1, -8, 0, 22), true)
-	progression.Name = "ZoneGuide"
+	label(page, "BEYOND THE RED LINE", 11, C.muted, UDim2.fromOffset(0, 163), UDim2.new(1, -8, 0, 24), true)
 	self.zoneGuide =
-		label(page, "", 14, C.ink, UDim2.fromOffset(0, 201), UDim2.new(1, -8, 0, #self.config.zones * 33))
+		label(page, "", 13, C.ink, UDim2.fromOffset(0, 197), UDim2.new(1, -8, 0, #self.config.zones * 46))
 	self.zoneGuide.TextWrapped = true
 	self.zoneGuide.TextYAlignment = Enum.TextYAlignment.Top
 	local footer = label(
 		page,
-		"Every upgrade uses earned game cash.\nRobux shop: planned for a future phase; no paid purchases are active.",
-		12,
+		"Guardians stop at their red boundary. Get the egg across, then head home.\n\nUpgrades use earned coins. There are no paid purchases.",
+		13,
 		C.muted,
-		UDim2.fromOffset(0, 212 + #self.config.zones * 33),
-		UDim2.new(1, -10, 0, 70)
+		UDim2.fromOffset(0, 214 + #self.config.zones * 46),
+		UDim2.new(1, -12, 0, 100)
 	)
 	footer.TextWrapped = true
+	footer.TextYAlignment = Enum.TextYAlignment.Top
 end
 
 function Hud:_buildSettings()
 	local page = self.pages.Settings
+	self.soundButton = self:_button(
+		page,
+		"Sound effects   ·   " .. (if self.sfxEnabled then "On" else "Off"),
+		C.paper,
+		UDim2.fromOffset(2, 4),
+		UDim2.new(1, -12, 0, 48),
+		function()
+			self.sfxEnabled = not self.sfxEnabled
+			self.soundButton.Text = "Sound effects   ·   " .. (if self.sfxEnabled then "On" else "Off")
+			-- Reach the client's enabled-state sync even when sound has just been
+			-- switched off, cancelling voices already queued by a hatch or upgrade.
+			if self.callbacks.sound then
+				self.callbacks.sound("ui")
+			end
+		end
+	)
 	self.motionButton = self:_button(
 		page,
-		"REDUCED MOTION: OFF",
-		C.mint,
-		UDim2.fromOffset(2, 5),
-		UDim2.new(1, -12, 0, 52),
+		"Reduced motion   ·   Off",
+		C.paper,
+		UDim2.fromOffset(2, 62),
+		UDim2.new(1, -12, 0, 48),
 		function()
 			self.reducedMotion = not self.reducedMotion
-			self.motionButton.Text = "REDUCED MOTION: " .. (if self.reducedMotion then "ON" else "OFF")
+			self.motionButton.Text = "Reduced motion   ·   " .. (if self.reducedMotion then "On" else "Off")
 			if self.reducedMotion and self.revealTween then
 				self.revealTween:Cancel()
 				self.revealTween = nil
@@ -2596,77 +3758,64 @@ function Hud:_buildSettings()
 	)
 	self.effectsButton = self:_button(
 		page,
-		"VISUAL EFFECTS: ON",
-		C.lilac,
-		UDim2.fromOffset(2, 72),
-		UDim2.new(1, -12, 0, 52),
+		"Visual effects   ·   On",
+		C.paper,
+		UDim2.fromOffset(2, 120),
+		UDim2.new(1, -12, 0, 48),
 		function()
 			self.effects = not self.effects
-			self.effectsButton.Text = "VISUAL EFFECTS: " .. (if self.effects then "ON" else "OFF")
+			self.effectsButton.Text = "Visual effects   ·   " .. (if self.effects then "On" else "Off")
 		end
 	)
 	local details = label(
 		page,
-		"Reduced motion stops idle bobbing and reveal animation.\n\nVisual effects controls decorative animal motion.\n\nNo background music. This prototype has no audio assets.\n\nSettings and progress last for this session only.",
-		14,
+		"Sound effects play for game events; there is no background music.\n\nReduced motion limits decorative movement and hatch animation.\n\nSESSION PROGRESS\nCoins, animals, upgrades, and settings reset when you leave. Saving is not available yet.",
+		13,
 		C.muted,
-		UDim2.fromOffset(2, 143),
-		UDim2.new(1, -12, 0, 186)
+		UDim2.fromOffset(3, 190),
+		UDim2.new(1, -15, 0, 210)
 	)
 	details.TextWrapped = true
 	details.TextYAlignment = Enum.TextYAlignment.Top
 end
 
 function Hud:_buildReveal()
+	-- A toast, not a full-screen input blocker: movement and prompts stay available.
 	self.revealOverlay = make("Frame", {
 		Name = "HatchReveal",
-		BackgroundColor3 = C.ink,
-		BackgroundTransparency = 0.38,
+		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		Visible = false,
-		ZIndex = 60,
-		Active = true,
+		ZIndex = 30,
+		Active = false,
 	}, self.root)
 	self.revealCard =
-		panel(self.revealOverlay, "NewFriend", C.paper, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(400, 400))
-	self.revealCard.AnchorPoint = Vector2.new(0.5, 0.5)
+		panel(self.revealOverlay, "NewFriend", C.paper, UDim2.new(0.5, 0, 1, -74), UDim2.fromOffset(346, 144))
+	self.revealCard.AnchorPoint = Vector2.new(0.5, 1)
 	self.revealScale = make("UIScale", { Scale = 1 }, self.revealCard)
-	local title = label(
+	self.revealTitle = label(
 		self.revealCard,
-		"YOU HATCHED A FRIEND!",
-		15,
+		"A NEW FRIEND!",
+		10,
 		C.muted,
-		UDim2.new(0, 16, 0, 19),
-		UDim2.new(1, -32, 0, 26),
+		UDim2.fromOffset(91, 12),
+		UDim2.new(1, -137, 0, 16),
 		true
 	)
-	title.TextXAlignment = Enum.TextXAlignment.Center
 	self.revealArt =
-		eggArt(self.revealCard, UDim2.new(0.5, -50, 0.17, 0), UDim2.fromOffset(100, 105), C.yellow, false)
+		eggArt(self.revealCard, UDim2.fromOffset(12, 27), UDim2.fromOffset(65, 78), C.yellow, false)
 	self.revealName =
-		label(self.revealCard, "", 24, C.ink, UDim2.new(0, 18, 0.46, 0), UDim2.new(1, -36, 0, 44), true)
+		label(self.revealCard, "", 16, C.ink, UDim2.fromOffset(90, 32), UDim2.new(1, -108, 0, 36), true)
 	self.revealName.TextWrapped = true
-	self.revealName.TextXAlignment = Enum.TextXAlignment.Center
 	self.revealRarity =
-		label(self.revealCard, "", 15, C.ink, UDim2.new(0, 18, 0.58, 0), UDim2.new(1, -36, 0, 26), true)
-	self.revealRarity.TextXAlignment = Enum.TextXAlignment.Center
-	self.revealIncome =
-		label(self.revealCard, "", 16, C.ink, UDim2.new(0, 18, 0.67, 0), UDim2.new(1, -36, 0, 23), true)
-	self.revealIncome.TextXAlignment = Enum.TextXAlignment.Center
+		label(self.revealCard, "", 12, C.ink, UDim2.fromOffset(91, 69), UDim2.new(1, -108, 0, 18), true)
 	self.revealNote =
-		label(self.revealCard, "", 11, C.muted, UDim2.new(0, 18, 0.74, 0), UDim2.new(1, -36, 0, 27))
+		label(self.revealCard, "", 11, C.muted, UDim2.fromOffset(91, 91), UDim2.new(1, -108, 0, 43))
 	self.revealNote.TextWrapped = true
-	self.revealNote.TextXAlignment = Enum.TextXAlignment.Center
-	self:_button(
-		self.revealCard,
-		"NICE!",
-		C.yellow,
-		UDim2.new(0.5, -75, 1, -61),
-		UDim2.fromOffset(150, 44),
-		function()
-			self.revealOverlay.Visible = false
-		end
-	)
+	self.revealNote.TextYAlignment = Enum.TextYAlignment.Top
+	self:_button(self.revealCard, "×", C.paper, UDim2.new(1, -45, 0, 0), UDim2.fromOffset(44, 44), function()
+		self.revealOverlay.Visible = false
+	end)
 end
 
 function Hud:update(state)
@@ -2674,36 +3823,40 @@ function Hud:update(state)
 		return
 	end
 	self.state = state
-	self.statValues[1].Text = "$" .. cash(state.cash)
-	self.statValues[2].Text = "+$" .. cash(state.income)
-	self.statValues[3].Text = "LV " .. tostring(state.speedLevel or 0)
+	self.cashLabel.Text = "$" .. cash(state.cash)
+	self.incomeLabel.Text = "+$" .. cash(state.income) .. " / sec"
+	self.speedLabel.Text = "Level " .. tostring(state.speedLevel or 0)
 	local cost = state.upgradeCost
-	local upgradeText = if cost then "SPEED UP · $" .. cash(cost) else "SPEED MAXED!"
+	local upgradeText = if cost then "Speed up  ·  $" .. cash(cost) else "Maximum speed"
 	self.upgrade.Text = upgradeText
 	self.shopUpgrade.Text = upgradeText
-	self.upgrade.BackgroundColor3 = if cost and (state.cash or 0) >= cost
-		then C.lilac
-		else Color3.fromRGB(214, 204, 235)
+	self.upgrade.BackgroundColor3 = if cost and (state.cash or 0) >= cost then C.mint else C.paper
 	self.shopUpgrade.BackgroundColor3 = self.upgrade.BackgroundColor3
 	self.shopSpeed.Text = string.format(
-		"Level %d / %d  ·  Movement speed %d",
+		"Level %d of %d  ·  Run speed %d",
 		state.speedLevel or 0,
 		self.config.speed.maxLevel,
 		state.walkSpeed or self.config.speed.base
 	)
 	self.deposit.Visible = state.carrying ~= nil
+	self.upgrade.Visible = state.carrying == nil
 	if state.carrying then
-		local zone = self.zoneById[state.carrying]
-		self.missionHeading.Text = "EGG ON BOARD · RUN HOME!"
-		self.missionText.Text = "Bring your "
-			.. (if zone then zone.name else "stolen")
-			.. " egg to base "
-			.. tostring(state.baseId or "")
-			.. ". Deposit it at your nest."
-		self.mission.BackgroundColor3 = C.yellow
+		local pursued = state.escaped ~= true
+		self.missionText.Text = if pursued
+			then "Run! Cross the red line to lose the guardian."
+			else "Egg secured! Take it to garden " .. tostring(state.baseId or "?") .. "."
+		self.missionDot.BackgroundColor3 = if pursued then C.pink else C.yellow
+		self.mission.BackgroundColor3 = if pursued
+			then C.pink:Lerp(C.paper, 0.68)
+			else C.yellow:Lerp(C.paper, 0.7)
 	else
-		self.missionHeading.Text = "BASE " .. tostring(state.baseId or "?") .. " · YOUR NEXT ADVENTURE"
-		self.missionText.Text = state.tutorial or "Follow the path. Approach an egg and use its steal prompt!"
+		local hatches = #(state.hatches or {})
+		local animals = #(state.animals or {})
+		self.missionText.Text = if hatches > 0
+			then "Eggs are warming. Explore while they hatch!"
+			elseif animals == 0 then "Follow the path. Hold the egg prompt to steal!"
+			else "Garden " .. tostring(state.baseId or "?") .. "  ·  Grow your crew. Upgrade. Explore."
+		self.missionDot.BackgroundColor3 = C.mint
 		self.mission.BackgroundColor3 = C.paper
 	end
 	local lines = {}
@@ -2711,13 +3864,10 @@ function Hud:update(state)
 		local unlocked = (state.speedLevel or 0) >= zone.requiredLevel
 		table.insert(
 			lines,
-			(if unlocked then "OPEN  " else "LOCKED  ")
-				.. zone.name
-				.. " · speed level "
-				.. tostring(zone.requiredLevel)
+			(if unlocked then "Open   " else "Level " .. tostring(zone.requiredLevel) .. "   ") .. zone.name
 		)
 	end
-	self.zoneGuide.Text = table.concat(lines, "\n")
+	self.zoneGuide.Text = table.concat(lines, "\n\n")
 	local owned = {}
 	for _, animal in ipairs(state.animals or {}) do
 		owned[animal.id] = (owned[animal.id] or 0) + 1
@@ -2727,24 +3877,26 @@ function Hud:update(state)
 		total += 1
 		local discovered = (state.discovered or {})[id] == true
 		local animal = self.config.animals[id]
+		local rarityColor = tint(self.config.rarities[animal.rarity].color)
 		if discovered then
 			found += 1
 		end
-		card.name.Text = if discovered then animal.name else "???"
+		card.name.Text = if discovered then animal.name else "Mystery friend"
 		card.income.Text = if discovered
-			then "$" .. cash(animal.income) .. "/s · owned " .. tostring(owned[id] or 0)
+			then "$" .. cash(animal.income) .. "/s  ·  Owned " .. tostring(owned[id] or 0)
 			else "Not discovered"
+		card.rarity.TextColor3 = if discovered then rarityColor:Lerp(C.ink, 0.62) else C.muted
 		card.frame.BackgroundColor3 = if discovered
-			then tint(self.config.rarities[animal.rarity].color):Lerp(C.paper, 0.76)
-			else Color3.fromRGB(243, 240, 247)
+			then rarityColor:Lerp(C.paper, 0.87)
+			else C.paper:Lerp(C.muted, 0.08)
 		if discovered and not card.discovered then
 			card.art:Destroy()
-			card.art = animalArt(card.frame, UDim2.fromOffset(7, 19), UDim2.fromOffset(52, 64), animal)
+			card.art = animalArt(card.frame, UDim2.new(0.5, -34, 0, 9), UDim2.fromOffset(68, 70), animal)
 			card.discovered = true
 		end
 	end
 	self.collectionCount.Text = string.format(
-		"%d / %d discovered · %d / %d animal spaces",
+		"%d / %d discovered   ·   %d / %d in your garden",
 		found,
 		total,
 		#(state.animals or {}),
@@ -2759,6 +3911,7 @@ function Hud:_tick()
 	end
 	local now = os.clock()
 	self.noticeFrame.Visible = now < self.noticeUntil
+	self.mission.Visible = not self.noticeFrame.Visible
 	if self.revealOverlay.Visible and now >= self.revealUntil then
 		self.revealOverlay.Visible = false
 	end
@@ -2766,18 +3919,20 @@ function Hud:_tick()
 	for _, hatch in ipairs(if self.state then self.state.hatches or {} else {}) do
 		bySlot[hatch.slot] = hatch
 	end
+	local occupied = false
 	local serverNow = Workspace:GetServerTimeNow()
 	for index, slot in ipairs(self.slotLabels) do
 		local hatch = bySlot[index]
+		slot.Parent.Visible = hatch ~= nil
 		if hatch then
+			occupied = true
 			local remaining = math.max(0, math.ceil(hatch.readyAt - serverNow))
-			slot.Text = if remaining > 0 then "EGG · " .. tostring(remaining) .. "s" else "Hatching!"
-			slot.TextColor3 = C.ink
-		else
-			slot.Text = "○ Empty"
-			slot.TextColor3 = C.muted
+			slot.Text = if remaining > 0
+				then "Nest " .. index .. "  ·  " .. remaining .. "s"
+				else "Hatching!"
 		end
 	end
+	self.hatching.Visible = occupied
 end
 
 function Hud:notice(payload)
@@ -2786,11 +3941,12 @@ function Hud:notice(payload)
 	end
 	self.noticeText.Text = tostring(payload.text or "")
 	self.noticeFrame.BackgroundColor3 = if payload.kind == "error"
-		then C.pink
+		then C.pink:Lerp(C.paper, 0.35)
 		elseif payload.kind == "success" then C.mint
-		else C.yellow
+		else C.yellow:Lerp(C.paper, 0.3)
 	self.noticeUntil = os.clock() + 4
 	self.noticeFrame.Visible = true
+	self.mission.Visible = false
 end
 
 function Hud:reveal(payload)
@@ -2802,29 +3958,28 @@ function Hud:reveal(payload)
 		return
 	end
 	local rarity = self.config.rarities[animal.rarity]
+	self.revealTitle.Text = if payload.kept == false then "DISCOVERED!" else "A NEW FRIEND!"
 	self.revealName.Text = animal.name
-	self.revealRarity.Text = string.upper(animal.rarity)
-	self.revealRarity.TextColor3 = tint(rarity.color):Lerp(C.ink, 0.28)
-	self.revealIncome.Text = "$" .. cash(payload.income or animal.income) .. "/s animal income"
+	self.revealRarity.Text = animal.rarity .. "  ·  $" .. cash(payload.income or animal.income) .. "/s"
+	self.revealRarity.TextColor3 = tint(rarity.color):Lerp(C.ink, 0.62)
 	self.revealNote.Text = if payload.kept == false
-		then "Discovered! Your eight higher earners stayed on display."
-		elseif payload.replacedName then "Replaced " .. payload.replacedName .. " in your full collection."
-		else animal.personality or "Your newest nest mate!"
-	self.revealCard.BackgroundColor3 = tint(rarity.color):Lerp(C.paper, 0.87)
+		then "Collection updated. Your stronger earners kept their garden spots."
+		elseif payload.replacedName then "Moved in for " .. payload.replacedName .. "."
+		else animal.personality or "Your newest garden friend!"
+	self.revealCard.BackgroundColor3 = tint(rarity.color):Lerp(C.paper, 0.89)
 	self.revealArt:Destroy()
-	self.revealArt =
-		animalArt(self.revealCard, UDim2.new(0.5, -50, 0.17, 0), UDim2.fromOffset(100, 105), animal)
+	self.revealArt = animalArt(self.revealCard, UDim2.fromOffset(12, 27), UDim2.fromOffset(65, 78), animal)
 	self.revealOverlay.Visible = true
-	self.revealUntil = os.clock() + 8
+	self.revealUntil = os.clock() + 3
 	if self.revealTween then
 		self.revealTween:Cancel()
 		self.revealTween = nil
 	end
 	if not self.reducedMotion and self.effects then
-		self.revealScale.Scale = 0.84
+		self.revealScale.Scale = 0.94
 		self.revealTween = TweenService:Create(
 			self.revealScale,
-			TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 			{ Scale = 1 }
 		)
 		self.revealTween:Play()
@@ -2854,20 +4009,22 @@ return Hud
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="22">
+  <Item class="StarterPlayer" referent="26">
     <Properties>
       <string name="Name">StarterPlayer</string>
+      <float name="CameraMaxZoomDistance">48</float>
+      <float name="CameraMinZoomDistance">7</float>
       <float name="CharacterWalkSpeed">16</float>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="23">
+    <Item class="StarterPlayerScripts" referent="27">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="24">
+      <Item class="Folder" referent="28">
         <Properties>
           <string name="Name">GoofyEgg</string>
         </Properties>
-        <Item class="LocalScript" referent="25">
+        <Item class="LocalScript" referent="29">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--!nonstrict
@@ -2883,9 +4040,13 @@ local connections = {}
 local animated = {}
 local countdowns = {}
 local guardians = {}
+local pendingModels = {}
+local modelWatches = {}
 local closed = false
 local receivedState = false
 local hud
+local sound
+local PetMotion
 
 local function connect(signal, callback)
 	local connection = signal:Connect(callback)
@@ -2924,6 +4085,9 @@ end
 local ok, problem = pcall(function()
 	local packageFolder = required(ReplicatedStorage, "GoofyEgg")
 	local config = require(required(required(packageFolder, "Shared"), "Config"))
+	PetMotion = require(required(required(packageFolder, "Shared"), "PetMotion"))
+	local SoundEffects = require(required(script.Parent, "SoundEffects"))
+	sound = SoundEffects.new(config)
 	local Hud = require(required(required(playerGui, "GoofyUI"), "Hud"))
 	local remotes = required(packageFolder, "Remotes")
 	local stateRemote = required(remotes, "State")
@@ -2933,6 +4097,12 @@ local ok, problem = pcall(function()
 	local getState = required(remotes, "GetState")
 
 	hud = Hud.new(config, {
+		sound = function(cue)
+			if not closed then
+				sound:setEnabled(not hud or hud.sfxEnabled ~= false)
+				sound:play(cue)
+			end
+		end,
 		action = function(action)
 			if not closed and (action == "UpgradeSpeed" or action == "DepositEgg") then
 				actionRemote:FireServer(action)
@@ -2949,11 +4119,17 @@ local ok, problem = pcall(function()
 	connect(noticeRemote.OnClientEvent, function(payload)
 		if not closed then
 			hud:notice(payload)
+			if type(payload) == "table" and type(payload.sound) == "string" then
+				sound:setEnabled(hud.sfxEnabled ~= false)
+				sound:play(payload.sound)
+			end
 		end
 	end)
 	connect(hatchRemote.OnClientEvent, function(payload)
 		if not closed then
 			hud:reveal(payload)
+			sound:setEnabled(hud.sfxEnabled ~= false)
+			sound:play("hatch")
 		end
 	end)
 
@@ -2989,6 +4165,9 @@ if not ok then
 	if hud then
 		hud:destroy()
 	end
+	if sound then
+		sound:destroy()
+	end
 	for _, connection in ipairs(connections) do
 		connection:Disconnect()
 	end
@@ -2997,37 +4176,181 @@ if not ok then
 	return
 end
 
-local function observe(instance)
-	if not instance:IsA("Model") then
-		return
+local function rigReady(model)
+	local expected = model:GetAttribute("RigPartCount")
+	local scale = model:GetAttribute("RigScale")
+	if
+		not model.PrimaryPart
+		or type(expected) ~= "number"
+		or type(scale) ~= "number"
+		or type(model:GetAttribute("Species")) ~= "string"
+	then
+		return false
 	end
-	if instance:GetAttribute("VisualRole") == "Animal" then
-		-- Only static collection models bob. Never move a server-controlled guardian here.
-		animated[instance] =
-			{ origin = instance:GetPivot(), phase = math.random() * math.pi * 2, moved = false }
-	elseif instance:GetAttribute("VisualRole") == "Guardian" then
-		guardians[instance] = true
+	local count = 0
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			if
+				typeof(part:GetAttribute("AnimationRest")) ~= "CFrame"
+				or type(part:GetAttribute("AnimationRole")) ~= "string"
+				or type(part:GetAttribute("AnimationSide")) ~= "number"
+				or type(part:GetAttribute("AnimationPhase")) ~= "number"
+			then
+				return false
+			end
+			count += 1
+		end
 	end
-	if type(instance:GetAttribute("ReadyAt")) == "number" then
-		countdowns[instance] = true
-	end
+	return count == expected
 end
 
-for _, descendant in ipairs(Workspace:GetDescendants()) do
-	observe(descendant)
-end
-connect(Workspace.DescendantAdded, function(instance)
-	-- Builders set model attributes and parents in the same task; defer until they finish.
-	task.defer(function()
-		if not closed and instance.Parent then
-			observe(instance)
+local function cacheRig(model)
+	local scale = model:GetAttribute("RigScale")
+	local origin = model:GetPivot()
+	local parts = {}
+	for _, child in ipairs(model:GetDescendants()) do
+		if child:IsA("BasePart") and child ~= model.PrimaryPart then
+			local rest = child:GetAttribute("AnimationRest")
+			table.insert(parts, {
+				part = child,
+				rest = CFrame.new(rest.Position * scale) * rest.Rotation,
+				role = child:GetAttribute("AnimationRole"),
+				side = child:GetAttribute("AnimationSide") or 1,
+				phase = child:GetAttribute("AnimationPhase") or 0,
+			})
 		end
-	end)
-end)
+	end
+	return {
+		origin = origin,
+		parts = parts,
+		species = model:GetAttribute("Species"),
+		scale = scale,
+		seed = model:GetAttribute("RoamSeed") or 0,
+		posed = false,
+		moved = false,
+	}
+end
+
+-- All offsets are applied to cached rest poses, never to the previous frame.
+-- Root transforms belong to roaming (pets) or the server (guardians).
+local function poseRig(entry, pivot, now, speed, stride, active)
+	local weight = if active then math.clamp(speed / 1.8, 0, 1) else 0
+	local gait = stride * 3.2
+	local bob = math.abs(math.sin(gait)) * 0.045 * weight
+	local roll = math.sin(gait) * 0.025 * weight
+	if entry.species == "rabbit" or entry.species == "frog" then
+		bob = math.abs(math.sin(gait)) * 0.28 * weight
+	elseif entry.species == "duck" or entry.species == "penguin" then
+		roll = math.sin(gait) * 0.065 * weight
+	end
+	local body = CFrame.new(0, bob * entry.scale, 0) * CFrame.Angles(0, 0, roll)
+	local idle = if active then math.sin(now * 1.9 + entry.seed) else 0
+	for _, joint in ipairs(entry.parts) do
+		if joint.part.Parent then
+			local offset = body
+			local rotation = CFrame.identity
+			if joint.role == "Foot" then
+				local step = gait + joint.phase + (if joint.side < 0 then math.pi else 0)
+				if entry.species == "frog" or entry.species == "rabbit" then
+					step = gait -- These two hop with both feet together.
+				end
+				offset = CFrame.new(
+					0,
+					math.max(0, math.sin(step)) * 0.26 * entry.scale * weight,
+					math.cos(step) * 0.23 * entry.scale * weight
+				)
+				rotation = CFrame.Angles(math.sin(step) * 0.22 * weight, 0, 0)
+			elseif joint.role == "Wing" or joint.role == "Arm" then
+				rotation = CFrame.Angles(
+					math.sin(gait) * 0.18 * weight,
+					0,
+					joint.side * (idle * 0.035 + math.sin(gait) * 0.22 * weight)
+				)
+			elseif joint.role == "Ear" then
+				rotation = CFrame.Angles(-math.sin(gait) * 0.09 * weight, 0, idle * 0.045 * joint.side)
+			elseif joint.role == "Tail" then
+				rotation = CFrame.Angles(0, idle * 0.18 + math.sin(gait) * 0.1 * weight, idle * 0.05)
+			end
+			joint.part.CFrame = pivot * offset * joint.rest * rotation
+		end
+	end
+	entry.posed = active
+end
+
+-- Replication may deliver attributes and descendants in different frames.
+-- Retry only pending rigs, and listen for later metadata instead of caching partial models.
+local function observe(instance)
+	local role = instance:GetAttribute("VisualRole")
+	if role == "Animal" and not animated[instance] then
+		local x, y, z =
+			instance:GetAttribute("RoamCenterX"),
+			instance:GetAttribute("RoamCenterY"),
+			instance:GetAttribute("RoamCenterZ")
+		local halfX, halfZ = instance:GetAttribute("RoamHalfX"), instance:GetAttribute("RoamHalfZ")
+		if
+			type(x) ~= "number"
+			or type(y) ~= "number"
+			or type(z) ~= "number"
+			or type(halfX) ~= "number"
+			or type(halfZ) ~= "number"
+			or type(instance:GetAttribute("RoamSeed")) ~= "number"
+			or type(instance:GetAttribute("Species")) ~= "string"
+			or not rigReady(instance)
+		then
+			return false
+		end
+		local entry = cacheRig(instance)
+		entry.center = Vector3.new(x, y, z)
+		entry.plan = PetMotion.new(entry.seed, halfX, halfZ, entry.species)
+		animated[instance] = entry
+	elseif role == "Guardian" and not guardians[instance] then
+		if not rigReady(instance) then
+			return false
+		end
+		guardians[instance] = cacheRig(instance)
+	end
+	if role == "HatchingEgg" then
+		if type(instance:GetAttribute("ReadyAt")) ~= "number" then
+			return false
+		end
+		countdowns[instance] = true
+	end
+	return true
+end
+
+local function watchModel(instance)
+	if not instance:IsA("Model") or modelWatches[instance] then
+		return
+	end
+	local function retry()
+		if not closed and instance:IsDescendantOf(Workspace) then
+			pendingModels[instance] = true
+		end
+	end
+	modelWatches[instance] = {
+		instance.AttributeChanged:Connect(retry),
+		instance:GetPropertyChangedSignal("PrimaryPart"):Connect(retry),
+		instance.DescendantAdded:Connect(retry),
+	}
+	retry()
+end
+
+for _, descendant in Workspace:GetDescendants() do
+	watchModel(descendant)
+end
+connect(Workspace.DescendantAdded, watchModel)
 connect(Workspace.DescendantRemoving, function(instance)
 	animated[instance] = nil
 	countdowns[instance] = nil
 	guardians[instance] = nil
+	pendingModels[instance] = nil
+	local watches = modelWatches[instance]
+	if watches then
+		for _, connection in watches do
+			connection:Disconnect()
+		end
+		modelWatches[instance] = nil
+	end
 end)
 
 local accumulated = 0
@@ -3041,27 +4364,44 @@ connect(RunService.Heartbeat, function(dt)
 	-- Decorative world updates are capped at 20Hz, keeping mobile cost predictable.
 	if accumulated >= 0.05 then
 		accumulated = 0
-		local active = hud.effects and not hud.reducedMotion
-		local now = os.clock()
+		local active = hud.effects
+		local gaitEnabled = active and not hud.reducedMotion
+		local now = Workspace:GetServerTimeNow()
 		local camera = Workspace.CurrentCamera
 		for model, entry in pairs(animated) do
 			if not model.Parent then
 				animated[model] = nil
-			elseif active and camera and (entry.origin.Position - camera.CFrame.Position).Magnitude < 160 then
-				local wave = math.sin(now * 2.1 + entry.phase)
-				model:PivotTo(
-					entry.origin * CFrame.new(0, wave * 0.12, 0) * CFrame.Angles(0, 0, wave * 0.035)
-				)
+			elseif active and camera and (entry.center - camera.CFrame.Position).Magnitude < 160 then
+				local sample = PetMotion.sample(entry.plan, now)
+				local pivot = CFrame.new(entry.center + Vector3.new(sample.x, 0, sample.z))
+					* CFrame.Angles(0, sample.heading, 0)
+				model:PivotTo(pivot)
+				poseRig(entry, pivot, now, sample.speed, sample.stride, gaitEnabled)
 				entry.moved = true
-			elseif entry.moved then
-				model:PivotTo(entry.origin)
-				entry.moved = false
+			elseif entry.posed then
+				poseRig(entry, model:GetPivot(), now, 0, 0, false)
+			end
+		end
+		for model, entry in pairs(guardians) do
+			if not model.Parent then
+				guardians[model] = nil
+			elseif camera and (model:GetPivot().Position - camera.CFrame.Position).Magnitude < 160 then
+				local moving = model:GetAttribute("Chasing") or model:GetAttribute("State") == "Returning"
+				local speed = if moving then 3 else 0
+				poseRig(entry, model:GetPivot(), now, speed, now * speed, gaitEnabled)
+			elseif entry.posed then
+				poseRig(entry, model:GetPivot(), now, 0, 0, false)
 			end
 		end
 	end
 	if countdownElapsed >= 0.25 then
 		countdownElapsed = 0
 		local serverNow = Workspace:GetServerTimeNow()
+		for model in pendingModels do
+			if not model.Parent or observe(model) then
+				pendingModels[model] = nil
+			end
+		end
 		for model in pairs(countdowns) do
 			local readyAt = model:GetAttribute("ReadyAt")
 			if not model.Parent or type(readyAt) ~= "number" then
@@ -3097,20 +4437,172 @@ connect(script.Destroying, function()
 	for model, entry in pairs(animated) do
 		if model.Parent and entry.moved then
 			model:PivotTo(entry.origin)
+			poseRig(entry, entry.origin, 0, 0, 0, false)
 		end
 	end
+	for model, entry in pairs(guardians) do
+		if model.Parent then
+			poseRig(entry, model:GetPivot(), 0, 0, 0, false)
+		end
+	end
+	for _, watches in modelWatches do
+		for _, connection in watches do
+			connection:Disconnect()
+		end
+	end
+	table.clear(modelWatches)
+	table.clear(pendingModels)
 	table.clear(animated)
 	table.clear(countdowns)
 	table.clear(guardians)
 	hud:destroy()
+	sound:destroy()
 end)
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="30">
+          <Properties>
+            <string name="Name">SoundEffects</string>
+            <string name="Source"><![CDATA[-- Local, short interaction cues using sounds shipped with Roblox itself.
+-- No external audio IDs, uploads, looping tracks, or background music.
+-- Edit profiles here for owned/licensed custom SoundIds later; volume is in Config.audio.
+local SoundService = game:GetService("SoundService")
+local ContentProvider = game:GetService("ContentProvider")
+
+local SoundEffects = {}
+SoundEffects.__index = SoundEffects
+
+local SPRING = "rbxasset://sounds/action_get_up.mp3"
+local WHOOSH = "rbxasset://sounds/action_jump.mp3"
+local TAP = "rbxasset://sounds/action_jump_land.mp3"
+local SPLASH = "rbxasset://sounds/impact_water.mp3"
+
+-- Sound profiles are brief mechanical/animal-like cues, not a musical soundtrack.
+local CUES = {
+	ui = { { id = TAP, pitch = 1.9, volume = 0.22, lifetime = 0.16 } },
+	steal = { { id = WHOOSH, pitch = 0.85, volume = 0.65, lifetime = 0.55 } },
+	escape = { { id = SPRING, pitch = 1.45, volume = 0.6, lifetime = 0.5 } },
+	catch = { { id = TAP, pitch = 0.65, volume = 0.85, lifetime = 0.7 } },
+	deposit = { { id = TAP, pitch = 1.2, volume = 0.48, lifetime = 0.45 } },
+	upgrade = {
+		{ id = WHOOSH, pitch = 1.25, volume = 0.48, lifetime = 0.4 },
+		{ id = SPRING, pitch = 1.75, volume = 0.5, lifetime = 0.4, delay = 0.1 },
+	},
+	denied = { { id = TAP, pitch = 0.85, volume = 0.35, lifetime = 0.28 } },
+	hatch = {
+		{ id = SPLASH, pitch = 1.5, volume = 0.6, lifetime = 0.65 },
+		{ id = SPRING, pitch = 1.65, volume = 0.7, lifetime = 0.5, delay = 0.13 },
+	},
+}
+
+function SoundEffects.new(config)
+	local audio = config.audio or {}
+	local self = setmetatable({
+		enabled = audio.enabled ~= false,
+		volume = math.clamp(audio.volume or 0.4, 0, 1),
+		destroyed = false,
+		active = {},
+		lastPlayed = {},
+		generation = 0,
+	}, SoundEffects)
+	self.folder = Instance.new("Folder")
+	self.folder.Name = "GoofyEggLocalSFX"
+	self.folder.Parent = SoundService
+	-- Preloading is optional and never blocks player input or game startup.
+	task.spawn(function()
+		local ok = pcall(function()
+			ContentProvider:PreloadAsync({ SPRING, WHOOSH, TAP, SPLASH })
+		end)
+		if not ok and not self.destroyed then
+			warn("Goofy Egg: sound preloading was unavailable; cues will load on demand.")
+		end
+	end)
+	return self
+end
+
+function SoundEffects:_voice(profile, generation)
+	if self.destroyed or not self.enabled or self.generation ~= generation then
+		return
+	end
+	-- Bound simultaneous voices even if notices arrive in a burst.
+	local count = 0
+	for voice in self.active do
+		if voice.Parent then
+			count += 1
+		end
+	end
+	if count >= 6 then
+		return
+	end
+	local sound = Instance.new("Sound")
+	sound.Name = "InteractionCue"
+	sound.SoundId = profile.id
+	sound.Volume = self.volume * profile.volume
+	sound.PlaybackSpeed = profile.pitch
+	sound.Looped = false
+	sound.Parent = self.folder
+	self.active[sound] = true
+	sound:Play()
+	task.delay(profile.lifetime, function()
+		self.active[sound] = nil
+		sound:Destroy()
+	end)
+end
+
+function SoundEffects:play(cue)
+	if self.destroyed or not self.enabled then
+		return
+	end
+	local profiles = CUES[cue]
+	if not profiles then
+		return
+	end
+	local now = os.clock()
+	if now - (self.lastPlayed[cue] or -math.huge) < 0.12 then
+		return
+	end
+	self.lastPlayed[cue] = now
+	local generation = self.generation
+	for _, profile in profiles do
+		if profile.delay then
+			task.delay(profile.delay, function()
+				self:_voice(profile, generation)
+			end)
+		else
+			self:_voice(profile, generation)
+		end
+	end
+end
+
+function SoundEffects:setEnabled(enabled)
+	self.enabled = enabled == true
+	if not self.enabled then
+		self.generation += 1
+		for sound in self.active do
+			sound:Destroy()
+		end
+		table.clear(self.active)
+	end
+end
+
+function SoundEffects:destroy()
+	if self.destroyed then
+		return
+	end
+	self:setEnabled(false)
+	self.destroyed = true
+	self.folder:Destroy()
+end
+
+return SoundEffects
 ]]></string>
           </Properties>
         </Item>
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="26">
+  <Item class="Workspace" referent="31">
     <Properties>
       <string name="Name">Workspace</string>
       <float name="FallenPartsDestroyHeight">-80</float>

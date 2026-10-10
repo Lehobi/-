@@ -53,7 +53,10 @@ def main():
     modules = place.findall(".//Item[@class='ModuleScript']")
     remotes = place.findall(".//Item[@class='RemoteEvent']")
     assert len(scripts) == 1 and len(clients) == 1, "Missing or unexpected game entrypoints"
-    assert len(modules) == 6 and len(remotes) == 4, "Rojo hierarchy differs from the expected game modules/remotes"
+    source_files = list((ROOT / "src").rglob("*.luau"))
+    module_files = [file for file in source_files if not file.name.endswith((".server.luau", ".client.luau"))]
+    assert len(modules) == len(module_files), "A game module is missing from the built place"
+    assert len(remotes) == 4, "Rojo hierarchy differs from the expected remotes"
     assert len(place.findall(".//Item[@class='RemoteFunction']")) == 1
     packaged_sources = Counter(node.text or "" for node in place.findall(".//Properties/*[@name='Source']"))
     expected_sources = Counter(source.read_text() for source in (ROOT / "src").rglob("*.luau"))

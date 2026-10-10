@@ -11,6 +11,8 @@ local connections = {}
 local animated = {}
 local countdowns = {}
 local guardians = {}
+local pendingModels = {}
+local modelWatches = {}
 local closed = false
 local receivedState = false
 local hud
@@ -145,14 +147,44 @@ if not ok then
 	return
 end
 
+local function rigReady(model)
+	local expected = model:GetAttribute("RigPartCount")
+	local scale = model:GetAttribute("RigScale")
+	if
+		not model.PrimaryPart
+		or type(expected) ~= "number"
+		or type(scale) ~= "number"
+		or type(model:GetAttribute("Species")) ~= "string"
+	then
+		return false
+	end
+	local count = 0
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			if
+				typeof(part:GetAttribute("AnimationRest")) ~= "CFrame"
+				or type(part:GetAttribute("AnimationRole")) ~= "string"
+				or type(part:GetAttribute("AnimationSide")) ~= "number"
+				or type(part:GetAttribute("AnimationPhase")) ~= "number"
+			then
+				return false
+			end
+			count += 1
+		end
+	end
+	return count == expected
+end
+
 local function cacheRig(model)
+	local scale = model:GetAttribute("RigScale")
 	local origin = model:GetPivot()
 	local parts = {}
 	for _, child in ipairs(model:GetDescendants()) do
 		if child:IsA("BasePart") and child ~= model.PrimaryPart then
+			local rest = child:GetAttribute("AnimationRest")
 			table.insert(parts, {
 				part = child,
-				rest = origin:ToObjectSpace(child.CFrame),
+				rest = CFrame.new(rest.Position * scale) * rest.Rotation,
 				role = child:GetAttribute("AnimationRole"),
 				side = child:GetAttribute("AnimationSide") or 1,
 				phase = child:GetAttribute("AnimationPhase") or 0,
@@ -163,7 +195,7 @@ local function cacheRig(model)
 		origin = origin,
 		parts = parts,
 		species = model:GetAttribute("Species"),
-		scale = model:GetScale(),
+		scale = scale,
 		seed = model:GetAttribute("RoamSeed") or 0,
 		posed = false,
 		moved = false,
@@ -216,47 +248,80 @@ local function poseRig(entry, pivot, now, speed, stride, active)
 	entry.posed = active
 end
 
+-- Replication may deliver attributes and descendants in different frames.
+-- Retry only pending rigs, and listen for later metadata instead of caching partial models.
 local function observe(instance)
-	if not instance:IsA("Model") then
-		return
-	end
-	if instance:GetAttribute("VisualRole") == "Animal" then
-		if animated[instance] then
-			return
-		end
-		local x, y, z = instance:GetAttribute("RoamCenterX"), instance:GetAttribute("RoamCenterY"), instance:GetAttribute("RoamCenterZ")
+	local role = instance:GetAttribute("VisualRole")
+	if role == "Animal" and not animated[instance] then
+		local x, y, z =
+			instance:GetAttribute("RoamCenterX"),
+			instance:GetAttribute("RoamCenterY"),
+			instance:GetAttribute("RoamCenterZ")
 		local halfX, halfZ = instance:GetAttribute("RoamHalfX"), instance:GetAttribute("RoamHalfZ")
-		if type(x) == "number" and type(y) == "number" and type(z) == "number" and type(halfX) == "number" and type(halfZ) == "number" then
-			local entry = cacheRig(instance)
-			entry.center = Vector3.new(x, y, z)
-			entry.plan = PetMotion.new(entry.seed, halfX, halfZ, entry.species)
-			animated[instance] = entry
+		if
+			type(x) ~= "number"
+			or type(y) ~= "number"
+			or type(z) ~= "number"
+			or type(halfX) ~= "number"
+			or type(halfZ) ~= "number"
+			or type(instance:GetAttribute("RoamSeed")) ~= "number"
+			or type(instance:GetAttribute("Species")) ~= "string"
+			or not rigReady(instance)
+		then
+			return false
 		end
-	elseif instance:GetAttribute("VisualRole") == "Guardian" then
-		if not guardians[instance] then
-			guardians[instance] = cacheRig(instance)
+		local entry = cacheRig(instance)
+		entry.center = Vector3.new(x, y, z)
+		entry.plan = PetMotion.new(entry.seed, halfX, halfZ, entry.species)
+		animated[instance] = entry
+	elseif role == "Guardian" and not guardians[instance] then
+		if not rigReady(instance) then
+			return false
 		end
+		guardians[instance] = cacheRig(instance)
 	end
-	if type(instance:GetAttribute("ReadyAt")) == "number" then
+	if role == "HatchingEgg" then
+		if type(instance:GetAttribute("ReadyAt")) ~= "number" then
+			return false
+		end
 		countdowns[instance] = true
 	end
+	return true
 end
 
-for _, descendant in ipairs(Workspace:GetDescendants()) do
-	observe(descendant)
-end
-connect(Workspace.DescendantAdded, function(instance)
-	-- Builders set model attributes and parents in the same task; defer until they finish.
-	task.defer(function()
-		if not closed and instance.Parent then
-			observe(instance)
+local function watchModel(instance)
+	if not instance:IsA("Model") or modelWatches[instance] then
+		return
+	end
+	local function retry()
+		if not closed and instance:IsDescendantOf(Workspace) then
+			pendingModels[instance] = true
 		end
-	end)
-end)
+	end
+	modelWatches[instance] = {
+		instance.AttributeChanged:Connect(retry),
+		instance:GetPropertyChangedSignal("PrimaryPart"):Connect(retry),
+		instance.DescendantAdded:Connect(retry),
+	}
+	retry()
+end
+
+for _, descendant in Workspace:GetDescendants() do
+	watchModel(descendant)
+end
+connect(Workspace.DescendantAdded, watchModel)
 connect(Workspace.DescendantRemoving, function(instance)
 	animated[instance] = nil
 	countdowns[instance] = nil
 	guardians[instance] = nil
+	pendingModels[instance] = nil
+	local watches = modelWatches[instance]
+	if watches then
+		for _, connection in watches do
+			connection:Disconnect()
+		end
+		modelWatches[instance] = nil
+	end
 end)
 
 local accumulated = 0
@@ -303,6 +368,11 @@ connect(RunService.Heartbeat, function(dt)
 	if countdownElapsed >= 0.25 then
 		countdownElapsed = 0
 		local serverNow = Workspace:GetServerTimeNow()
+		for model in pendingModels do
+			if not model.Parent or observe(model) then
+				pendingModels[model] = nil
+			end
+		end
 		for model in pairs(countdowns) do
 			local readyAt = model:GetAttribute("ReadyAt")
 			if not model.Parent or type(readyAt) ~= "number" then
@@ -346,6 +416,13 @@ connect(script.Destroying, function()
 			poseRig(entry, model:GetPivot(), 0, 0, 0, false)
 		end
 	end
+	for _, watches in modelWatches do
+		for _, connection in watches do
+			connection:Disconnect()
+		end
+	end
+	table.clear(modelWatches)
+	table.clear(pendingModels)
 	table.clear(animated)
 	table.clear(countdowns)
 	table.clear(guardians)

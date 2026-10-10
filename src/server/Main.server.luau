@@ -210,7 +210,16 @@ end
 
 for _, zone in Config.zones do
 	local zoneWorld = world.zones[zone.id]
-	local guardian = { world = zoneWorld, state = "Idle", target = nil, readyAt = 0, startedAt = 0 }
+	local size = zoneWorld.guardian:GetExtentsSize()
+	-- Keep the entire animated silhouette inside the red perimeter, not just its pivot.
+	local guardian = {
+		world = zoneWorld,
+		state = "Idle",
+		target = nil,
+		readyAt = 0,
+		startedAt = 0,
+		inset = math.sqrt(size.X * size.X + size.Z * size.Z) * 0.5 + 0.5,
+	}
 	guardians[zone.id] = guardian
 	setGuardianState(guardian, "Idle")
 	connect(zoneWorld.prompt.Triggered, function(player)
@@ -407,7 +416,7 @@ local function moveGuardian(guardian, targetPosition, speed, dt, now)
 	local model = guardian.world.guardian
 	local from = model:GetPivot().Position
 	local zone = guardian.world.config
-	local x, z = ChaseRules.clampPosition(zone, targetPosition.X, targetPosition.Z)
+	local x, z = ChaseRules.clampPosition(zone, targetPosition.X, targetPosition.Z, guardian.inset)
 	if not x or not z then
 		return math.huge
 	end
@@ -417,7 +426,7 @@ local function moveGuardian(guardian, targetPosition, speed, dt, now)
 	if distance > 0.05 then
 		local position = Vector3.new(from.X, destination.Y, from.Z)
 			+ delta.Unit * math.min(distance, speed * dt)
-		local boundedX, boundedZ = ChaseRules.clampPosition(zone, position.X, position.Z)
+		local boundedX, boundedZ = ChaseRules.clampPosition(zone, position.X, position.Z, guardian.inset)
 		if not boundedX or not boundedZ then
 			return math.huge
 		end
@@ -543,4 +552,4 @@ game:BindToClose(function()
 	world:destroy()
 end)
 
-print("Steal a Goofy Egg: Phase 1 initialized (five bases, session-only progress, no music).")
+print("Steal a Goofy Egg: garden refinement initialized (five bases, session-only progress, no music).")

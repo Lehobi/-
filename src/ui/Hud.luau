@@ -282,6 +282,7 @@ local function navigationIcon(parent, kind)
 			shape(if row == 1 then 10 else 4, row * 6, 4, 6, C.ink)
 		end
 	end
+	return icon
 end
 
 function Hud.new(config, callbacks)
@@ -299,6 +300,7 @@ function Hud.new(config, callbacks)
 	self.destroyed = false
 	self.collectionCards = {}
 	self.slotLabels = {}
+	self.navigationItems = {}
 	self.zoneById = {}
 	for _, zone in ipairs(config.zones) do
 		self.zoneById[zone.id] = zone
@@ -421,8 +423,9 @@ function Hud.new(config, callbacks)
 			end
 		)
 		button.Name = name
-		navigationIcon(button, name)
-		label(button, name, 12, C.ink, UDim2.fromOffset(36, 0), UDim2.new(1, -40, 1, 0), true)
+		local icon = navigationIcon(button, name)
+		local caption = label(button, name, 12, C.ink, UDim2.fromOffset(36, 0), UDim2.new(1, -40, 1, 0), true)
+		table.insert(self.navigationItems, { icon = icon, caption = caption })
 	end
 
 	self.noticeFrame = panel(self.root, "Notice", C.yellow, self.mission.Position, self.mission.Size)
@@ -505,33 +508,55 @@ end
 function Hud:_layout()
 	local size = self.gui.AbsoluteSize
 	local width, height = math.max(size.X, 280), math.max(size.Y, 240)
-	local portrait = width < 700
 	local short = height < 440
+	-- Landscape phones have room for one compact header, but not stacked menus
+	-- and a hatch reveal. Keep the full 44px button height and omit only icons.
+	local compactLandscape = short and width >= 540
+	local compactHeader = compactLandscape and width < 700
+	local portrait = width < 700 and not compactLandscape
 	local margin = 12
 	local available = width - margin * 2
-	local walletWidth = if portrait then available - 110 else 214
+	local walletWidth = if compactHeader then 142 elseif portrait then available - 110 else 214
+	local leftWidth = if compactLandscape
+		then math.min(336, available - 282)
+		elseif portrait then available
+		else 336
 	self.wallet.Size = UDim2.fromOffset(walletWidth, 48)
 	self.speedChip.Position = UDim2.fromOffset(margin + walletWidth + 8, 10)
-	self.mission.Size = UDim2.fromOffset(if portrait then available else 336, 40)
+	self.mission.Size = UDim2.fromOffset(leftWidth, 40)
 	self.navigation.AnchorPoint = Vector2.new(if portrait then 0 else 1, 0)
 	self.navigation.Position = if portrait
 		then UDim2.fromOffset(margin, 114)
 		else UDim2.new(1, -margin, 0, 12)
-	self.navigation.Size = UDim2.fromOffset(if portrait then available + 5 else 340, 44)
+	self.navigation.Size =
+		UDim2.fromOffset(if compactHeader then 260 elseif portrait then available + 5 else 340, 44)
+	for _, item in ipairs(self.navigationItems) do
+		item.icon.Visible = not compactHeader
+		item.caption.Position = UDim2.fromOffset(if compactHeader then 6 else 36, 0)
+		item.caption.Size = UDim2.new(1, if compactHeader then -12 else -40, 1, 0)
+		item.caption.TextXAlignment = if compactHeader
+			then Enum.TextXAlignment.Center
+			else Enum.TextXAlignment.Left
+	end
 	self.hatching.Position = UDim2.fromOffset(margin, if portrait then 166 else 114)
-	self.hatching.Size = UDim2.fromOffset(if portrait then available else 336, 30)
+	self.hatching.Size = UDim2.fromOffset(leftWidth, 30)
 	for _, slot in ipairs(self.slotLabels) do
-		slot.Parent.Size =
-			UDim2.fromOffset(math.floor((math.min(available, 336) - 12) / self.config.hatchSlots), 30)
+		local chipWidth = math.floor((math.min(leftWidth, 336) - 12) / self.config.hatchSlots)
+		slot.Parent.Size = UDim2.fromOffset(chipWidth, 30)
+		slot.TextSize = if chipWidth < 96 then 10 else 11
 	end
 	-- No global UIScale: phone tap targets stay 44px, text stays legible.
 	-- The lower corners are reserved for Roblox's thumbstick and jump button.
 	self.actionBar.Position = UDim2.new(0.5, 0, 1, if portrait and not short then -130 else -18)
+	if compactLandscape and height < 280 then
+		-- Very shallow Studio windows need separate columns for reveal and action.
+		self.actionBar.Position = UDim2.new(0, margin + leftWidth / 2, 1, -18)
+	end
 	self.modalPanel.Size = UDim2.fromOffset(math.min(610, available), math.min(490, height - 24))
 	self.noticeFrame.Position = self.mission.Position
 	self.noticeFrame.Size = self.mission.Size
 	self.collectionGrid.CellSize = UDim2.new(if width < 510 then 0.5 else 1 / 3, -8, 0, 168)
-	self.revealCard.Size = UDim2.fromOffset(math.min(346, available), 144)
+	self.revealCard.Size = UDim2.fromOffset(if compactLandscape then 270 else math.min(346, available), 144)
 	if portrait then
 		self.revealCard.AnchorPoint = Vector2.new(0.5, 0)
 		self.revealCard.Position = UDim2.new(0.5, 0, 0, 204)
@@ -645,15 +670,17 @@ function Hud:_buildSettings()
 	local page = self.pages.Settings
 	self.soundButton = self:_button(
 		page,
-		"Sound effects   ·   On",
+		"Sound effects   ·   " .. (if self.sfxEnabled then "On" else "Off"),
 		C.paper,
 		UDim2.fromOffset(2, 4),
 		UDim2.new(1, -12, 0, 48),
 		function()
 			self.sfxEnabled = not self.sfxEnabled
 			self.soundButton.Text = "Sound effects   ·   " .. (if self.sfxEnabled then "On" else "Off")
-			if self.sfxEnabled then
-				self:_sound("ui")
+			-- Reach the client's enabled-state sync even when sound has just been
+			-- switched off, cancelling voices already queued by a hatch or upgrade.
+			if self.callbacks.sound then
+				self.callbacks.sound("ui")
 			end
 		end
 	)

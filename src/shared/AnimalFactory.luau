@@ -42,7 +42,7 @@ local function piece(model, name, size, position, color, shape, rotation)
 	part.CanQuery = false
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	local animationRole = ANIMATION_ROLES[name]
+	local animationRole = ANIMATION_ROLES[name] or "Body"
 	if animationRole then
 		part:SetAttribute("AnimationRole", animationRole)
 		part:SetAttribute("AnimationSide", if position.X < 0 then -1 else 1)
@@ -56,6 +56,7 @@ end
 local function newModel(name)
 	local model = Instance.new("Model")
 	model.Name = name
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local root = piece(model, "Root", Vector3.new(0.2, 0.2, 0.2), Vector3.zero, WHITE)
 	root.Transparency = 1
 	root.CastShadow = false
@@ -309,6 +310,15 @@ function AnimalFactory.create(species, color, name)
 	model:SetAttribute("VisualRole", "Animal")
 	local builder = builders[species] or builders.frog
 	builder(model, colorFrom(color))
+	local count = 0
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			-- Replicate the unscaled authored pose, so late clients never cache a partial moving rig.
+			part:SetAttribute("AnimationRest", model:GetPivot():ToObjectSpace(part.CFrame))
+			count += 1
+		end
+	end
+	model:SetAttribute("RigPartCount", count)
 	return model
 end
 

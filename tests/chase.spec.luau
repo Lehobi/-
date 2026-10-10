@@ -83,6 +83,23 @@ test("invalid positions and arena numbers fail closed", function()
 	assert(ChaseRules.clampPosition(badOrigin, 0, 0) == nil)
 end)
 
+test("guardian footprint remains inside every edge while invalid insets fail closed", function()
+	local zone = Config.zones[1]
+	local radius = 5
+	for _, x in { -1000, 1000 } do
+		for _, z in { -1000, 1000 } do
+			local cx, cz = ChaseRules.clampPosition(zone, x, z, radius)
+			assert(cx and cz)
+			assert(ChaseRules.inside(zone, cx - radius, cz - radius))
+			assert(ChaseRules.inside(zone, cx + radius, cz + radius))
+		end
+	end
+	for _, invalid in { -1, math.huge, 0 / 0, zone.arenaHalfWidth, zone.arenaHalfDepth + 1 } do
+		local x, z = ChaseRules.clampPosition(zone, 0, zone.position.z, invalid)
+		assert(x == nil and z == nil)
+	end
+end)
+
 -- Mirrors the server's 10 Hz straight-line chase step to catch impossible baseline tuning.
 -- This is a geometry check, not a replacement for Studio movement/latency playtesting.
 local function simulateRun(zone, playerSpeed, running)
