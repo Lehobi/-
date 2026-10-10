@@ -8,6 +8,7 @@ local shared = ReplicatedStorage:WaitForChild("GoofyEgg"):WaitForChild("Shared")
 local remotes = ReplicatedStorage.GoofyEgg.Remotes
 local Config = require(shared.Config)
 local Economy = require(shared.Economy)
+local ChaseRules = require(shared.ChaseRules)
 local AnimalFactory = require(shared.AnimalFactory)
 local Session = require(script.Parent.Session)
 local World = require(script.Parent.World)
@@ -37,8 +38,8 @@ local function connect(signal, callback)
 	return connection
 end
 
-local function notice(player, text, kind)
-	remotes.Notice:FireClient(player, { text = text, kind = kind or "info" })
+local function notice(player, text, kind, sound)
+	remotes.Notice:FireClient(player, { text = text, kind = kind or "info", sound = sound })
 end
 
 local function body(player)
@@ -113,12 +114,17 @@ local function showCarry(player, zone)
 	carryModels[player] = model
 end
 
+local function setGuardianState(guardian, state)
+	guardian.state = state
+	guardian.world.guardian:SetAttribute("State", state)
+	guardian.world.guardian:SetAttribute("Chasing", state == "Chasing")
+end
+
 local function endChase(player)
 	for _, guardian in guardians do
 		if guardian.target == player then
 			guardian.target = nil
-			guardian.state = "Returning"
-			guardian.world.guardian:SetAttribute("Chasing", false)
+			setGuardianState(guardian, "Returning")
 		end
 	end
 end
@@ -139,7 +145,7 @@ local function returnHome(player)
 	end
 end
 
-local function loseEgg(player, message, teleport)
+local function loseEgg(player, message, teleport, sound)
 	local session = sessions[player]
 	if not session then
 		return
@@ -151,7 +157,7 @@ local function loseEgg(player, message, teleport)
 		returnHome(player)
 	end
 	if message and hadEgg then
-		notice(player, message, "warning")
+		notice(player, message, "warning", sound)
 	end
 	send(player)
 end
@@ -167,13 +173,13 @@ local function deposit(player)
 	end
 	local hatch = session:deposit(clock())
 	if not hatch then
-		notice(player, "All hatch slots are busy!", "warning")
+		notice(player, "All hatch slots are busy!", "warning", "denied")
 		return
 	end
 	clearCarry(player)
 	endChase(player)
 	world:showHatch(session.baseId, hatch.slot, hatch.zoneId, hatch.readyAt)
-	notice(player, "Safe at home! Your egg is hatching.", "success")
+	notice(player, "Safe at home! Your egg is hatching.", "success", "deposit")
 	send(player)
 end
 
@@ -186,9 +192,9 @@ local function upgrade(player)
 	if ok then
 		local _, humanoid = body(player)
 		humanoid.WalkSpeed = Economy.walkSpeed(session.speedLevel)
-		notice(player, "Speed level " .. session.speedLevel .. "!", "success")
+		notice(player, "Speed level " .. session.speedLevel .. "!", "success", "upgrade")
 	else
-		notice(player, reason, "warning")
+		notice(player, reason, "warning", "denied")
 	end
 	send(player)
 end
@@ -206,6 +212,7 @@ for _, zone in Config.zones do
 	local zoneWorld = world.zones[zone.id]
 	local guardian = { world = zoneWorld, state = "Idle", target = nil, readyAt = 0, startedAt = 0 }
 	guardians[zone.id] = guardian
+	setGuardianState(guardian, "Idle")
 	connect(zoneWorld.prompt.Triggered, function(player)
 		if not permitted(player) or guardian.state ~= "Idle" then
 			return
@@ -214,23 +221,22 @@ for _, zone in Config.zones do
 		if not near(player, zoneWorld.egg:GetPivot().Position, 13) then
 			return
 		end
+		local root = body(player)
+		if not root or not ChaseRules.inside(zone, root.Position.X, root.Position.Z) then
+			return
+		end
 		local session = sessions[player]
 		local ok, reason = session:steal(zone.id)
 		if not ok then
-			notice(player, reason, "warning")
+			notice(player, reason, "warning", "denied")
 			return
 		end
-		guardian.state = "Chasing"
+		setGuardianState(guardian, "Chasing")
 		guardian.target = player
 		guardian.startedAt = clock()
-		guardian.world.guardian:SetAttribute("Chasing", true)
 		world:setEggAvailable(zone.id, false)
 		showCarry(player, zone)
-		notice(
-			player,
-			"The " .. zone.guardian .. " woke up! Run to base " .. session.baseId .. "!",
-			"warning"
-		)
+		notice(player, "The " .. zone.guardian .. " woke up! Cross the red line!", "warning", "steal")
 		send(player)
 	end)
 end
@@ -293,7 +299,7 @@ local function onCharacter(player, character)
 	humanoid.JumpPower = 40
 	returnHome(player)
 	characterConnections[player] = humanoid.Died:Connect(function()
-		loseEgg(player, "Oops! Your egg was lost. Your animals are safe.", false)
+		loseEgg(player, "Oops! Your egg was lost. Your animals are safe.", false, "catch")
 	end)
 	send(player)
 end
@@ -383,6 +389,7 @@ checkMotion = function(player, now)
 	local invalid = distance ~= distance
 		or distance == math.huge
 		or distance > available
+		or root.Position.Y ~= root.Position.Y
 		or root.Position.Y > 40
 		or root.Position.Y < -20
 	if invalid then
@@ -399,12 +406,22 @@ end
 local function moveGuardian(guardian, targetPosition, speed, dt, now)
 	local model = guardian.world.guardian
 	local from = model:GetPivot().Position
-	local destination = Vector3.new(targetPosition.X, guardian.world.home.Position.Y, targetPosition.Z)
+	local zone = guardian.world.config
+	local x, z = ChaseRules.clampPosition(zone, targetPosition.X, targetPosition.Z)
+	if not x or not z then
+		return math.huge
+	end
+	local destination = Vector3.new(x, guardian.world.home.Position.Y, z)
 	local delta = destination - Vector3.new(from.X, destination.Y, from.Z)
 	local distance = delta.Magnitude
 	if distance > 0.05 then
 		local position = Vector3.new(from.X, destination.Y, from.Z)
 			+ delta.Unit * math.min(distance, speed * dt)
+		local boundedX, boundedZ = ChaseRules.clampPosition(zone, position.X, position.Z)
+		if not boundedX or not boundedZ then
+			return math.huge
+		end
+		position = Vector3.new(boundedX, destination.Y, boundedZ)
 		-- Tiny procedural bounce makes the original part animal waddle without physics overhead.
 		position += Vector3.new(0, math.abs(math.sin(now * 9)) * 0.18, 0)
 		model:PivotTo(CFrame.lookAt(position, position + delta.Unit))
@@ -439,14 +456,27 @@ connect(RunService.Heartbeat, function(dt)
 			local root = player and body(player)
 			if not root or not session or session.carrying ~= zoneId then
 				guardian.target = nil
-				guardian.state = "Returning"
-				guardian.world.guardian:SetAttribute("Chasing", false)
+				setGuardianState(guardian, "Returning")
+			elseif not ChaseRules.inside(zone, root.Position.X, root.Position.Z) then
+				-- Release BEFORE moving or checking catches: the red perimeter is a safe exit.
+				-- A secured egg stays in the player's hands, and re-entering cannot rearm this chase.
+				guardian.target = nil
+				setGuardianState(guardian, "Returning")
+				if session:markEscaped(zoneId) then
+					notice(
+						player,
+						"Escaped! Bring your egg home to base " .. session.baseId .. ".",
+						"success",
+						"escape"
+					)
+					send(player)
+				end
 			elseif now - guardian.startedAt > 60 then
-				loseEgg(player, "The guardian reclaimed its egg. Try a quicker route!", true)
-			else
+				loseEgg(player, "The guardian reclaimed its egg. Try a quicker route!", true, "catch")
+			elseif now - guardian.startedAt >= zone.wakeSeconds then
 				moveGuardian(guardian, root.Position, zone.guardianSpeed, step, now)
 				if flatDistance(guardian.world.guardian:GetPivot().Position, root.Position) < 4.5 then
-					loseEgg(player, "Caught! Your egg is gone, but your animals are safe.", true)
+					loseEgg(player, "Caught! Your egg is gone, but your animals are safe.", true, "catch")
 				end
 			end
 		elseif guardian.state == "Returning" then
@@ -454,11 +484,11 @@ connect(RunService.Heartbeat, function(dt)
 				moveGuardian(guardian, guardian.world.home.Position, zone.guardianSpeed * 1.5, step, now) < 1
 			then
 				guardian.world.guardian:PivotTo(guardian.world.home)
-				guardian.state = "Cooldown"
+				setGuardianState(guardian, "Cooldown")
 				guardian.readyAt = now + zone.cooldownSeconds
 			end
 		elseif guardian.state == "Cooldown" and now >= guardian.readyAt then
-			guardian.state = "Idle"
+			setGuardianState(guardian, "Idle")
 			world:setEggAvailable(zoneId, true)
 		end
 	end

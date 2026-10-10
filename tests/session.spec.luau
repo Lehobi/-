@@ -85,27 +85,31 @@ test("three pending eggs block a fourth steal and finishing a middle slot frees 
 	assert(session:freeSlot() == nil and #session.animals == 1)
 end)
 
-test("starting cash buys one speed level and insufficient balance changes nothing", function()
+test("starting cash needs pet income before the first speed upgrade", function()
 	local session = fresh()
+	assert(not session:upgrade())
+	assert(session.cash == 25 and session.speedLevel == 0)
+	hatch(session, "turtle", 0, 0)
+	session:earn(5)
 	assert(session:upgrade())
 	assert(session.cash == 0 and session.speedLevel == 1)
-	assert(session:snapshot().walkSpeed == 18 and session:snapshot().upgradeCost == 38)
+	assert(session:snapshot().walkSpeed == 18 and session:snapshot().upgradeCost == 82)
 	for _ = 1, 3 do
 		assert(not session:upgrade())
 		assert(session.cash == 0 and session.speedLevel == 1)
 	end
 end)
 
-test("rabbit eggs are locked through level three and unlock at level four", function()
+test("rabbit eggs are locked through level five and unlock at level six", function()
 	local session = fresh()
 	session.cash = 10000
-	for level = 0, 3 do
+	for level = 0, 5 do
 		assert(session.speedLevel == level)
 		assert(not session:steal("rabbit"))
 		assert(session.carrying == nil)
 		assert(session:upgrade())
 	end
-	assert(session.speedLevel == 4 and session:snapshot().walkSpeed == 24)
+	assert(session.speedLevel == 6 and session:snapshot().walkSpeed == 28)
 	assert(session:steal("rabbit"))
 	assert(session:deposit(100).readyAt == 118)
 end)
@@ -125,7 +129,7 @@ test("hatching keeps the best eight animals and records discarded discoveries", 
 		assert(hatch(session, "turtle", 0, 0).kept)
 	end
 	assert(#session.animals == 8 and session:snapshot().income == 40)
-	session.speedLevel = 4
+	session.speedLevel = 6
 	local stronger = hatch(session, "rabbit", 0.99, 0)
 	assert(stronger.animalId == "dinosaur" and stronger.replacedId == "duck" and stronger.kept)
 	assert(#session.animals == 8 and session:snapshot().income == 125)
@@ -151,9 +155,39 @@ test("passive earnings use owned animal income and the exact whole elapsed secon
 	session:earn(11)
 	assert(session.cash == 139 and session:snapshot().income == 9)
 	assert(session:upgrade())
-	assert(session.cash == 114)
+	assert(session.cash == 89)
 	session:earn(1)
-	assert(session.cash == 123)
+	assert(session.cash == 98)
+end)
+
+test("crossing a boundary secures the carried egg without depositing or rewarding it", function()
+	local session = fresh()
+	assert(not session.escaped and not session:snapshot().escaped)
+	assert(not session:markEscaped("turtle"))
+	assert(session:steal("turtle"))
+	assert(not session:markEscaped("rabbit"))
+	assert(not session.escaped and session.carrying == "turtle")
+	assert(session:markEscaped("turtle"))
+	assert(session.escaped and session:snapshot().escaped and session.carrying == "turtle")
+	assert(session.cash == 25 and #session.animals == 0 and next(session.hatches) == nil)
+	assert(not session:markEscaped("turtle"), "Reentry cannot certify the same egg twice")
+	assert(not session:steal("turtle"), "A secured egg still occupies the carrying slot")
+	assert(session:deposit(100).readyAt == 110)
+	assert(not session.escaped and not session:snapshot().escaped and session.carrying == nil)
+	assert(session:steal("turtle"))
+	assert(not session.escaped, "The next egg must start a fresh chase")
+end)
+
+test("losing an escaped egg clears only its carry state", function()
+	local session = fresh()
+	hatch(session, "turtle", 0, 0)
+	session:earn(10)
+	assert(session:steal("turtle"))
+	assert(session:markEscaped("turtle"))
+	assert(session:loseCarry() == "turtle")
+	assert(not session.escaped and session.carrying == nil)
+	assert(session.cash == 75 and #session.animals == 1 and session.discovered.duck)
+	assert(session:loseCarry() == nil and not session.escaped)
 end)
 
 test("invalid elapsed times cannot grant cash or corrupt the balance", function()

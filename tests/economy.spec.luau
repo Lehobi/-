@@ -85,7 +85,7 @@ test("invalid rolls and unknown zones fail closed", function()
 	end
 	assert(Economy.getZone("missing") == nil)
 	local rabbitZone = Economy.getZone("rabbit")
-	assert(rabbitZone ~= nil and rabbitZone.requiredLevel == 4)
+	assert(rabbitZone ~= nil and rabbitZone.requiredLevel == 6)
 	rejects(function()
 		Economy.rollAnimal("missing", 0, 0)
 	end)
@@ -95,9 +95,9 @@ test("speed upgrade prices increase and stop at the cap", function()
 	assert(Economy.walkSpeed(0) == 16)
 	assert(Economy.walkSpeed(4) == 24)
 	assert(Economy.walkSpeed(12) == 40)
-	assert(Economy.upgradeCost(0) == 25)
-	assert(Economy.upgradeCost(1) == 38)
-	assert(Economy.upgradeCost(2) == 60)
+	assert(Economy.upgradeCost(0) == 50)
+	assert(Economy.upgradeCost(1) == 82)
+	assert(Economy.upgradeCost(2) == 136)
 	local previous = 0
 	for level = 0, 11 do
 		local price = Economy.upgradeCost(level)
@@ -113,6 +113,22 @@ test("speed upgrade prices increase and stop at the cap", function()
 			Economy.walkSpeed(level)
 		end)
 	end
+end)
+
+test("rabbit entry requires a collection investment beyond starting cash", function()
+	local zone = Economy.getZone("rabbit")
+	assert(zone and zone.requiredLevel == 6)
+	local total = 0
+	for level = 0, zone.requiredLevel - 1 do
+		local price = Economy.upgradeCost(level)
+		assert(price)
+		total += price
+	end
+	assert(total == 1473)
+	assert(Economy.upgradeCost(0) > Config.startCash)
+	-- Even the best starter-zone reward needs sustained income to unlock the next arena.
+	assert(total - Config.startCash > Config.animals.rabbit.income * 40)
+	assert(Economy.walkSpeed(zone.requiredLevel) == 28)
 end)
 
 test("income sums owned animals including duplicates", function()

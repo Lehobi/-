@@ -6,6 +6,19 @@ local INK = Color3.fromRGB(32, 36, 57)
 local PINK = Color3.fromRGB(255, 141, 172)
 local ORANGE = Color3.fromRGB(255, 175, 68)
 
+local ANIMATION_ROLES = {
+	Foot = "Foot",
+	Ear = "Ear",
+	InnerEar = "Ear",
+	HeadTuft = "Ear",
+	Wing = "Wing",
+	Flipper = "Wing",
+	TinyArm = "Arm",
+	Tail = "Tail",
+	CottonTail = "Tail",
+	TailSpike = "Tail",
+}
+
 local function colorFrom(value)
 	if typeof(value) == "Color3" then
 		return value
@@ -22,12 +35,20 @@ local function piece(model, name, size, position, color, shape, rotation)
 	part.Color = color
 	part.Shape = shape or Enum.PartType.Ball
 	part.Material = Enum.Material.SmoothPlastic
+	part.Reflectance = 0
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanTouch = false
 	part.CanQuery = false
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
+	local animationRole = ANIMATION_ROLES[name]
+	if animationRole then
+		part:SetAttribute("AnimationRole", animationRole)
+		part:SetAttribute("AnimationSide", if position.X < 0 then -1 else 1)
+		-- A turtle's diagonal feet step together; other pets alternate left/right.
+		part:SetAttribute("AnimationPhase", if position.Z > 0.5 then math.pi else 0)
+	end
 	part.Parent = model
 	return part
 end
@@ -87,6 +108,17 @@ function builders.turtle(model, color)
 		Vector3.new(0, 1.59, 0.25),
 		color:Lerp(WHITE, 0.3)
 	)
+	for _, side in ipairs({ -1, 1 }) do
+		piece(
+			model,
+			"ShellPlate",
+			Vector3.new(0.65, 0.25, 1.02),
+			Vector3.new(side * 0.72, 1.4, 0.28),
+			color:Lerp(INK, 0.12),
+			nil,
+			CFrame.Angles(0, 0, math.rad(side * -28))
+		)
+	end
 	piece(
 		model,
 		"ShellBelly",
@@ -200,6 +232,19 @@ function builders.cat(model, color)
 	end
 	piece(model, "Muzzle", Vector3.new(0.9, 0.49, 0.32), Vector3.new(0, 1.75, -0.82), WHITE)
 	piece(model, "Nose", Vector3.new(0.25, 0.18, 0.16), Vector3.new(0, 1.88, -1), PINK)
+	for _, side in ipairs({ -1, 1 }) do
+		for index = 1, 2 do
+			piece(
+				model,
+				"Whisker",
+				Vector3.new(0.46, 0.035, 0.035),
+				Vector3.new(side * 0.76, 1.73 + index * 0.13, -0.87),
+				INK,
+				Enum.PartType.Block,
+				CFrame.Angles(0, 0, side * (index - 1.5) * 0.24)
+			)
+		end
+	end
 	feet(model, WHITE, 0.48, -0.34)
 	piece(
 		model,

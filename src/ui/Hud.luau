@@ -1,5 +1,5 @@
 --!nonstrict
--- All artwork is made from Roblox UI primitives. No image or audio assets are required.
+-- Original interface artwork uses Roblox UI primitives; gameplay remains server-authoritative.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -9,14 +9,14 @@ local Hud = {}
 Hud.__index = Hud
 
 local C = {
-	ink = Color3.fromRGB(39, 37, 63),
-	muted = Color3.fromRGB(113, 110, 132),
-	paper = Color3.fromRGB(255, 253, 248),
+	ink = Color3.fromRGB(37, 49, 45),
+	muted = Color3.fromRGB(105, 119, 109),
+	paper = Color3.fromRGB(251, 248, 238),
 	blue = Color3.fromRGB(91, 153, 255),
 	lilac = Color3.fromRGB(187, 156, 255),
-	mint = Color3.fromRGB(151, 231, 175),
-	yellow = Color3.fromRGB(255, 216, 105),
-	pink = Color3.fromRGB(255, 151, 171),
+	mint = Color3.fromRGB(161, 213, 170),
+	yellow = Color3.fromRGB(240, 204, 111),
+	pink = Color3.fromRGB(228, 144, 121),
 }
 
 local function make(class, properties, parent)
@@ -29,22 +29,24 @@ local function make(class, properties, parent)
 end
 
 local function round(parent, radius)
-	return make("UICorner", { CornerRadius = UDim.new(0, radius or 16) }, parent)
+	return make("UICorner", { CornerRadius = UDim.new(0, radius or 12) }, parent)
 end
 
 local function border(parent, color, thickness)
-	return make(
-		"UIStroke",
-		{ Color = color or C.ink, Thickness = thickness or 2, Transparency = 0.08 },
-		parent
-	)
+	return make("UIStroke", {
+		Color = color or C.ink,
+		Thickness = thickness or 1,
+		Transparency = 0.82,
+		-- Contextual mode strokes TextButton letters, making the text illegible.
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, parent)
 end
 
 local function label(parent, text, size, color, position, dimensions, bold)
 	return make("TextLabel", {
 		BackgroundTransparency = 1,
 		Text = text,
-		Font = if bold then Enum.Font.GothamBold else Enum.Font.Gotham,
+		Font = if bold then Enum.Font.GothamMedium else Enum.Font.Gotham,
 		TextSize = size,
 		TextColor3 = color or C.ink,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -184,25 +186,31 @@ function Hud:_connect(signal, callback)
 	return connection
 end
 
+function Hud:_sound(cue)
+	if self.sfxEnabled and self.callbacks.sound then
+		self.callbacks.sound(cue)
+	end
+end
+
 function Hud:_button(parent, text, color, position, dimensions, callback)
 	local button = make("TextButton", {
 		Text = text,
 		TextColor3 = C.ink,
-		TextSize = 16,
-		Font = Enum.Font.GothamBold,
+		TextSize = 14,
+		Font = Enum.Font.GothamMedium,
 		BackgroundColor3 = color,
 		BorderSizePixel = 0,
 		Position = position,
 		Size = dimensions,
 		AutoButtonColor = true,
 	}, parent)
-	round(button, 12)
-	border(button, C.ink, 1.5)
-	-- Activated works for mouse, touch, and gamepad selection.
+	round(button, 11)
+	border(button)
 	self:_connect(button.Activated, function()
 		if self.destroyed then
 			return
 		end
+		self:_sound("ui")
 		callback()
 	end)
 	return button
@@ -210,7 +218,7 @@ end
 
 function Hud:_action(action)
 	if not self.state then
-		self:notice({ text = "Your base is still loading. One moment!", kind = "info" })
+		self:notice({ text = "Finding your garden. One moment!", kind = "info" })
 		return
 	end
 	local now = os.clock()
@@ -218,14 +226,18 @@ function Hud:_action(action)
 		return
 	end
 	self.lastAction = now
-	-- The UI only requests an action. Price, distance, and rewards are server decisions.
+	-- Prices, distance checks, and rewards always belong to the server.
 	self.callbacks.action(action)
+end
+
+function Hud:_closeMenu()
+	self.modal.Visible = false
+	self.activePanel = nil
 end
 
 function Hud:_open(name)
 	if self.activePanel == name and self.modal.Visible then
-		self.modal.Visible = false
-		self.activePanel = nil
+		self:_closeMenu()
 		return
 	end
 	self.activePanel = name
@@ -233,6 +245,42 @@ function Hud:_open(name)
 	self.modalTitle.Text = name
 	for key, page in pairs(self.pages) do
 		page.Visible = key == name
+	end
+end
+
+-- Small original geometric icons. Labels remain available beside every icon.
+local function navigationIcon(parent, kind)
+	local icon = make("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 13),
+		Size = UDim2.fromOffset(18, 18),
+	}, parent)
+	local function shape(x, y, w, h, color)
+		local piece = make("Frame", {
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			Position = UDim2.fromOffset(x, y),
+			Size = UDim2.fromOffset(w, h),
+		}, icon)
+		round(piece, 3)
+		return piece
+	end
+	if kind == "Collection" then
+		for row = 0, 1 do
+			for col = 0, 1 do
+				shape(col * 10, row * 10, 7, 7, C.ink)
+			end
+		end
+	elseif kind == "Shop" then
+		local coin = shape(1, 1, 16, 16, C.yellow)
+		round(coin, 8)
+		border(coin, C.ink, 1.5)
+		shape(7, 5, 3, 8, C.ink)
+	else
+		for row = 0, 2 do
+			shape(1, 2 + row * 6, 16, 2, C.muted)
+			shape(if row == 1 then 10 else 4, row * 6, 4, 6, C.ink)
+		end
 	end
 end
 
@@ -247,6 +295,7 @@ function Hud.new(config, callbacks)
 	self.revealUntil = 0
 	self.reducedMotion = false
 	self.effects = true
+	self.sfxEnabled = (config.audio or {}).enabled ~= false
 	self.destroyed = false
 	self.collectionCards = {}
 	self.slotLabels = {}
@@ -264,97 +313,89 @@ function Hud.new(config, callbacks)
 		DisplayOrder = 20,
 	}, Players.LocalPlayer:WaitForChild("PlayerGui"))
 	self.root = make("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, self.gui)
-	self.scale = make("UIScale", { Scale = 1 }, self.root)
 
-	self.brand =
-		label(self.root, "GOOFY EGG", 21, C.paper, UDim2.fromOffset(18, 12), UDim2.fromOffset(190, 30), true)
-	make("UIStroke", { Color = C.ink, Thickness = 2 }, self.brand)
-	self.sessionLabel = label(
-		self.root,
-		"PROTOTYPE · progress resets when you leave",
-		11,
-		C.paper,
-		UDim2.fromOffset(18, 41),
-		UDim2.fromOffset(370, 22),
-		true
-	)
-	make("UIStroke", { Color = C.ink, Thickness = 1.2 }, self.sessionLabel)
+	self.wallet = panel(self.root, "Wallet", C.paper, UDim2.fromOffset(12, 10), UDim2.fromOffset(214, 48))
+	local coin = make("Frame", {
+		BackgroundColor3 = C.yellow,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(11, 13),
+		Size = UDim2.fromOffset(22, 22),
+	}, self.wallet)
+	round(coin, 11)
+	local coinMark = label(coin, "$", 13, C.ink, UDim2.new(), UDim2.fromScale(1, 1), true)
+	coinMark.TextXAlignment = Enum.TextXAlignment.Center
+	self.cashLabel =
+		label(self.wallet, "$0", 18, C.ink, UDim2.fromOffset(41, 5), UDim2.new(1, -50, 0, 22), true)
+	self.incomeLabel =
+		label(self.wallet, "+$0 / sec", 12, C.muted, UDim2.fromOffset(42, 27), UDim2.new(1, -50, 0, 15))
+	self.speedChip = panel(self.root, "Speed", C.paper, UDim2.fromOffset(234, 10), UDim2.fromOffset(102, 48))
+	label(self.speedChip, "SPEED", 10, C.muted, UDim2.fromOffset(13, 7), UDim2.new(1, -20, 0, 14), true)
+	self.speedLabel =
+		label(self.speedChip, "Level 0", 15, C.ink, UDim2.fromOffset(13, 23), UDim2.new(1, -20, 0, 20), true)
 
-	self.stats = make(
-		"Frame",
-		{ BackgroundTransparency = 1, Position = UDim2.fromOffset(18, 73), Size = UDim2.fromOffset(410, 62) },
-		self.root
-	)
-	local statNames = { "CASH", "PER SECOND", "SPEED" }
-	local statColors = { C.yellow, C.mint, C.lilac }
-	self.statValues = {}
-	for index, title in ipairs(statNames) do
-		local stat = panel(
-			self.stats,
-			title,
-			statColors[index],
-			UDim2.new((index - 1) / 3, 3, 0, 0),
-			UDim2.new(1 / 3, -8, 1, 0)
-		)
-		label(stat, title, 11, C.ink, UDim2.fromOffset(12, 7), UDim2.new(1, -24, 0, 17), true)
-		self.statValues[index] =
-			label(stat, "...", 22, C.ink, UDim2.fromOffset(12, 26), UDim2.new(1, -20, 0, 27), true)
-	end
-
-	self.mission = panel(self.root, "Mission", C.paper, UDim2.fromOffset(18, 145), UDim2.fromOffset(350, 97))
-	self.missionHeading = label(
-		self.mission,
-		"LET'S GET GOOFY",
-		12,
-		C.muted,
-		UDim2.fromOffset(14, 9),
-		UDim2.new(1, -28, 0, 18),
-		true
-	)
+	self.mission = panel(self.root, "NextStep", C.paper, UDim2.fromOffset(12, 66), UDim2.fromOffset(336, 40))
+	self.mission.BackgroundTransparency = 0.08
+	self.missionDot = make("Frame", {
+		BackgroundColor3 = C.mint,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(12, 16),
+		Size = UDim2.fromOffset(8, 8),
+	}, self.mission)
+	round(self.missionDot, 4)
 	self.missionText = label(
 		self.mission,
-		"Setting up your base...",
-		15,
+		"Finding your garden...",
+		13,
 		C.ink,
-		UDim2.fromOffset(14, 30),
-		UDim2.new(1, -28, 0, 53),
-		true
+		UDim2.fromOffset(28, 4),
+		UDim2.new(1, -39, 1, -8)
 	)
 	self.missionText.TextWrapped = true
-	self.missionText.TextYAlignment = Enum.TextYAlignment.Top
 
-	self.hatching =
-		panel(self.root, "Hatching", C.paper, UDim2.fromOffset(18, 252), UDim2.fromOffset(350, 69))
-	label(self.hatching, "YOUR NEST", 11, C.muted, UDim2.fromOffset(13, 7), UDim2.new(1, -26, 0, 18), true)
+	self.hatching = make("Frame", {
+		Name = "OccupiedNests",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 114),
+		Size = UDim2.fromOffset(336, 30),
+		Visible = false,
+	}, self.root)
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, self.hatching)
 	for index = 1, config.hatchSlots do
-		local slot = label(
-			self.hatching,
-			"○ Empty",
-			12,
-			C.muted,
-			UDim2.new((index - 1) / config.hatchSlots, 12, 0, 30),
-			UDim2.new(1 / config.hatchSlots, -18, 0, 28),
-			true
-		)
+		local chip = panel(self.hatching, "Nest" .. index, C.paper, UDim2.new(), UDim2.fromOffset(105, 30))
+		chip.LayoutOrder = index
+		chip.Visible = false
+		round(chip, 9)
+		local slot = label(chip, "", 11, C.ink, UDim2.fromOffset(9, 0), UDim2.new(1, -18, 1, 0), true)
 		self.slotLabels[index] = slot
 	end
 
+	self.actionBar = make("Frame", {
+		Name = "ContextAction",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -20),
+		Size = UDim2.fromOffset(210, 44),
+	}, self.root)
 	self.upgrade = self:_button(
-		self.root,
-		"SPEED UP · ...",
-		C.lilac,
-		UDim2.fromOffset(18, 333),
-		UDim2.fromOffset(232, 48),
+		self.actionBar,
+		"Speed up  ·  ...",
+		C.mint,
+		UDim2.new(),
+		UDim2.fromScale(1, 1),
 		function()
 			self:_action("UpgradeSpeed")
 		end
 	)
 	self.deposit = self:_button(
-		self.root,
-		"DEPOSIT EGG",
+		self.actionBar,
+		"Nest egg at home",
 		C.yellow,
-		UDim2.fromOffset(18, 391),
-		UDim2.fromOffset(232, 46),
+		UDim2.new(),
+		UDim2.fromScale(1, 1),
 		function()
 			self:_action("DepositEgg")
 		end
@@ -362,36 +403,33 @@ function Hud.new(config, callbacks)
 	self.deposit.Visible = false
 
 	self.navigation = make("Frame", {
+		Name = "Navigation",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -18, 0, 74),
-		Size = UDim2.fromOffset(142, 172),
+		Position = UDim2.new(1, -12, 0, 12),
+		Size = UDim2.fromOffset(340, 44),
 	}, self.root)
-	for index, definition in ipairs({
-		{ "Collection", C.mint },
-		{ "Shop", C.yellow },
-		{ "Settings", C.paper },
-	}) do
-		local name = definition[1]
-		self:_button(
+	for index, name in ipairs({ "Collection", "Shop", "Settings" }) do
+		local button = self:_button(
 			self.navigation,
-			name,
-			definition[2],
-			UDim2.fromOffset(0, (index - 1) * 58),
-			UDim2.fromOffset(142, 48),
+			"",
+			C.paper,
+			UDim2.new((index - 1) / 3, 0, 0, 0),
+			UDim2.new(1 / 3, -5, 1, 0),
 			function()
 				self:_open(name)
 			end
 		)
+		button.Name = name
+		navigationIcon(button, name)
+		label(button, name, 12, C.ink, UDim2.fromOffset(36, 0), UDim2.new(1, -40, 1, 0), true)
 	end
 
-	self.noticeFrame =
-		panel(self.root, "Notice", C.yellow, UDim2.new(0.5, 0, 0, 18), UDim2.fromOffset(430, 54))
-	self.noticeFrame.AnchorPoint = Vector2.new(0.5, 0)
+	self.noticeFrame = panel(self.root, "Notice", C.yellow, self.mission.Position, self.mission.Size)
 	self.noticeFrame.ZIndex = 80
 	self.noticeFrame.Visible = false
 	self.noticeText =
-		label(self.noticeFrame, "", 15, C.ink, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 1, -12), true)
+		label(self.noticeFrame, "", 13, C.ink, UDim2.fromOffset(12, 4), UDim2.new(1, -24, 1, -8), true)
 	self.noticeText.TextWrapped = true
 
 	self.modal = make("Frame", {
@@ -404,34 +442,40 @@ function Hud.new(config, callbacks)
 		Active = true,
 	}, self.root)
 	self.modalPanel =
-		panel(self.modal, "Card", C.paper, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(570, 450))
+		panel(self.modal, "MenuCard", C.paper, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(610, 490))
 	self.modalPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 	self.modalTitle = label(
 		self.modalPanel,
 		"Collection",
-		25,
+		22,
 		C.ink,
-		UDim2.fromOffset(22, 16),
-		UDim2.new(1, -100, 0, 39),
+		UDim2.fromOffset(20, 16),
+		UDim2.new(1, -95, 0, 36),
 		true
 	)
-	self:_button(self.modalPanel, "X", C.pink, UDim2.new(1, -60, 0, 16), UDim2.fromOffset(40, 40), function()
-		self.modal.Visible = false
-		self.activePanel = nil
-	end)
+	self:_button(
+		self.modalPanel,
+		"×",
+		C.paper,
+		UDim2.new(1, -58, 0, 12),
+		UDim2.fromOffset(44, 44),
+		function()
+			self:_closeMenu()
+		end
+	)
 	self.pages = {}
 	for _, name in ipairs({ "Collection", "Shop", "Settings" }) do
 		self.pages[name] = make("ScrollingFrame", {
 			Name = name,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(18, 68),
-			Size = UDim2.new(1, -36, 1, -84),
+			Position = UDim2.fromOffset(18, 66),
+			Size = UDim2.new(1, -36, 1, -82),
 			CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
-			ScrollBarThickness = 5,
-			ScrollBarImageColor3 = C.lilac,
+			ScrollBarThickness = 4,
+			ScrollBarImageColor3 = C.mint:Lerp(C.ink, 0.2),
 			Visible = false,
 		}, self.modalPanel)
 	end
@@ -453,65 +497,67 @@ function Hud.new(config, callbacks)
 		elapsed = 0
 		self:_tick()
 	end)
+	self:notice({ text = "Welcome! This session's progress resets when you leave.", kind = "info" })
+	self.noticeUntil = os.clock() + 6
 	return self
 end
 
 function Hud:_layout()
 	local size = self.gui.AbsoluteSize
-	local scale = if size.X < 480 then 0.82 elseif size.X < 780 then 0.9 else 1
-	if size.Y < 450 then
-		scale = math.min(scale, 0.82)
+	local width, height = math.max(size.X, 280), math.max(size.Y, 240)
+	local portrait = width < 700
+	local short = height < 440
+	local margin = 12
+	local available = width - margin * 2
+	local walletWidth = if portrait then available - 110 else 214
+	self.wallet.Size = UDim2.fromOffset(walletWidth, 48)
+	self.speedChip.Position = UDim2.fromOffset(margin + walletWidth + 8, 10)
+	self.mission.Size = UDim2.fromOffset(if portrait then available else 336, 40)
+	self.navigation.AnchorPoint = Vector2.new(if portrait then 0 else 1, 0)
+	self.navigation.Position = if portrait
+		then UDim2.fromOffset(margin, 114)
+		else UDim2.new(1, -margin, 0, 12)
+	self.navigation.Size = UDim2.fromOffset(if portrait then available + 5 else 340, 44)
+	self.hatching.Position = UDim2.fromOffset(margin, if portrait then 166 else 114)
+	self.hatching.Size = UDim2.fromOffset(if portrait then available else 336, 30)
+	for _, slot in ipairs(self.slotLabels) do
+		slot.Parent.Size =
+			UDim2.fromOffset(math.floor((math.min(available, 336) - 12) / self.config.hatchSlots), 30)
 	end
-	self.scale.Scale = scale
-	self.root.Size = UDim2.fromScale(1 / scale, 1 / scale)
-	local width, height = size.X / scale, size.Y / scale
-	local compact = width < 650
-	self.brand.Position = UDim2.fromOffset(18, 8)
-	self.sessionLabel.Position = UDim2.fromOffset(18, 37)
-	self.stats.Size = UDim2.fromOffset(math.min(410, width - 36), 62)
-	self.stats.Position = UDim2.fromOffset(15, 69)
-	self.mission.Size = UDim2.fromOffset(if compact then math.max(210, width - 192) else 350, 97)
-	self.mission.Position = UDim2.fromOffset(18, 141)
-	self.hatching.Size = UDim2.fromOffset(if compact then math.max(210, width - 192) else 350, 69)
-	self.hatching.Position = UDim2.fromOffset(18, 249)
-	self.navigation.Position = UDim2.new(1, -18, 0, if compact then 141 else 69)
-	self.upgrade.Position = UDim2.fromOffset(18, 329)
-	self.upgrade.Size = UDim2.fromOffset(if compact then math.max(210, width - 192) else 232, 48)
-	self.deposit.Position = UDim2.fromOffset(18, 387)
-	self.deposit.Size = self.upgrade.Size
-	-- Landscape phones keep controls above the movement/jump touch controls.
-	if height < 510 and not compact then
-		self.mission.Position = UDim2.fromOffset(18, 141)
-		self.hatching.Position = UDim2.fromOffset(18, 249)
-		self.upgrade.Position = UDim2.new(1, -274, 0, 255)
-		self.deposit.Position = UDim2.new(1, -274, 0, 311)
-		self.mission.Size = UDim2.fromOffset(350, 97)
+	-- No global UIScale: phone tap targets stay 44px, text stays legible.
+	-- The lower corners are reserved for Roblox's thumbstick and jump button.
+	self.actionBar.Position = UDim2.new(0.5, 0, 1, if portrait and not short then -130 else -18)
+	self.modalPanel.Size = UDim2.fromOffset(math.min(610, available), math.min(490, height - 24))
+	self.noticeFrame.Position = self.mission.Position
+	self.noticeFrame.Size = self.mission.Size
+	self.collectionGrid.CellSize = UDim2.new(if width < 510 then 0.5 else 1 / 3, -8, 0, 168)
+	self.revealCard.Size = UDim2.fromOffset(math.min(346, available), 144)
+	if portrait then
+		self.revealCard.AnchorPoint = Vector2.new(0.5, 0)
+		self.revealCard.Position = UDim2.new(0.5, 0, 0, 204)
+	elseif short then
+		self.revealCard.AnchorPoint = Vector2.new(1, 0)
+		self.revealCard.Position = UDim2.new(1, -12, 0, 68)
+	else
+		self.revealCard.AnchorPoint = Vector2.new(0.5, 1)
+		self.revealCard.Position = UDim2.new(0.5, 0, 1, -74)
 	end
-	self.modalPanel.Size = UDim2.fromOffset(math.min(570, width - 30), math.min(450, height - 30))
-	self.noticeFrame.Size = UDim2.fromOffset(math.min(430, width - 36), 62)
-	self.revealCard.Size = UDim2.fromOffset(math.min(400, width - 38), math.min(400, height - 30))
-	self.collectionGrid.CellSize = UDim2.new(0.5, -8, 0, 103)
 end
 
 function Hud:_buildCollection()
 	local page = self.pages.Collection
-	self.collectionCount = label(
-		page,
-		"Discover a friend. Start a collection!",
-		14,
-		C.muted,
-		UDim2.new(),
-		UDim2.new(1, -8, 0, 30)
-	)
+	self.collectionCount =
+		label(page, "Your garden starts with one egg.", 13, C.muted, UDim2.new(), UDim2.new(1, -8, 0, 36))
+	self.collectionCount.TextWrapped = true
 	local grid = make("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(0, 42),
-		Size = UDim2.new(1, -8, 0, 0),
+		Position = UDim2.fromOffset(0, 46),
+		Size = UDim2.new(1, -6, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 	}, page)
 	self.collectionGrid = make("UIGridLayout", {
-		CellSize = UDim2.new(0.5, -8, 0, 103),
-		CellPadding = UDim2.fromOffset(12, 12),
+		CellSize = UDim2.new(1 / 3, -8, 0, 168),
+		CellPadding = UDim2.fromOffset(10, 10),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}, grid)
 	make(
@@ -529,23 +575,33 @@ function Hud:_buildCollection()
 		return if aOrder == bOrder then a.id < b.id else aOrder < bOrder
 	end)
 	for index, entry in ipairs(entries) do
-		local card = panel(grid, entry.id, Color3.fromRGB(243, 240, 247), UDim2.new(), UDim2.new())
+		local card = panel(grid, entry.id, C.paper:Lerp(C.muted, 0.08), UDim2.new(), UDim2.new())
 		card.LayoutOrder = index
-		local art = eggArt(card, UDim2.fromOffset(9, 19), UDim2.fromOffset(49, 64), C.lilac, true)
-		local name = label(card, "???", 14, C.ink, UDim2.fromOffset(65, 12), UDim2.new(1, -71, 0, 32), true)
+		local art = eggArt(
+			card,
+			UDim2.new(0.5, -34, 0, 9),
+			UDim2.fromOffset(68, 70),
+			C.paper:Lerp(C.muted, 0.2),
+			true
+		)
+		local name =
+			label(card, "Mystery friend", 13, C.ink, UDim2.fromOffset(8, 82), UDim2.new(1, -16, 0, 34), true)
 		name.TextWrapped = true
+		name.TextXAlignment = Enum.TextXAlignment.Center
 		local rarity = label(
 			card,
 			entry.animal.rarity,
 			11,
 			C.muted,
-			UDim2.fromOffset(65, 47),
-			UDim2.new(1, -71, 0, 19),
+			UDim2.fromOffset(8, 115),
+			UDim2.new(1, -16, 0, 18),
 			true
 		)
+		rarity.TextXAlignment = Enum.TextXAlignment.Center
 		local income =
-			label(card, "Not discovered", 10, C.muted, UDim2.fromOffset(65, 68), UDim2.new(1, -71, 0, 23))
+			label(card, "Not discovered", 11, C.muted, UDim2.fromOffset(8, 136), UDim2.new(1, -16, 0, 24))
 		income.TextWrapped = true
+		income.TextXAlignment = Enum.TextXAlignment.Center
 		self.collectionCards[entry.id] =
 			{ frame = card, name = name, rarity = rarity, income = income, art = art }
 	end
@@ -553,58 +609,63 @@ end
 
 function Hud:_buildShop()
 	local page = self.pages.Shop
-	local text = label(
-		page,
-		"A little faster. A little goofier.",
-		18,
-		C.ink,
-		UDim2.fromOffset(0, 0),
-		UDim2.new(1, -8, 0, 32),
+	label(page, "A little faster. A bigger adventure.", 16, C.ink, UDim2.new(), UDim2.new(1, -8, 0, 40), true).TextWrapped =
 		true
-	)
-	text.TextWrapped = true
 	self.shopSpeed =
-		label(page, "Loading your speed...", 14, C.muted, UDim2.fromOffset(0, 40), UDim2.new(1, -8, 0, 42))
+		label(page, "Finding your speed...", 13, C.muted, UDim2.fromOffset(0, 43), UDim2.new(1, -8, 0, 38))
 	self.shopSpeed.TextWrapped = true
 	self.shopUpgrade = self:_button(
 		page,
-		"UPGRADE SPEED",
-		C.lilac,
-		UDim2.fromOffset(2, 99),
-		UDim2.new(1, -12, 0, 52),
+		"Speed up",
+		C.mint,
+		UDim2.fromOffset(2, 91),
+		UDim2.new(1, -12, 0, 48),
 		function()
 			self:_action("UpgradeSpeed")
 		end
 	)
-	local progression =
-		label(page, "ZONE GUIDE", 12, C.muted, UDim2.fromOffset(0, 172), UDim2.new(1, -8, 0, 22), true)
-	progression.Name = "ZoneGuide"
+	label(page, "BEYOND THE RED LINE", 11, C.muted, UDim2.fromOffset(0, 163), UDim2.new(1, -8, 0, 24), true)
 	self.zoneGuide =
-		label(page, "", 14, C.ink, UDim2.fromOffset(0, 201), UDim2.new(1, -8, 0, #self.config.zones * 33))
+		label(page, "", 13, C.ink, UDim2.fromOffset(0, 197), UDim2.new(1, -8, 0, #self.config.zones * 46))
 	self.zoneGuide.TextWrapped = true
 	self.zoneGuide.TextYAlignment = Enum.TextYAlignment.Top
 	local footer = label(
 		page,
-		"Every upgrade uses earned game cash.\nRobux shop: planned for a future phase; no paid purchases are active.",
-		12,
+		"Guardians stop at their red boundary. Get the egg across, then head home.\n\nUpgrades use earned coins. There are no paid purchases.",
+		13,
 		C.muted,
-		UDim2.fromOffset(0, 212 + #self.config.zones * 33),
-		UDim2.new(1, -10, 0, 70)
+		UDim2.fromOffset(0, 214 + #self.config.zones * 46),
+		UDim2.new(1, -12, 0, 100)
 	)
 	footer.TextWrapped = true
+	footer.TextYAlignment = Enum.TextYAlignment.Top
 end
 
 function Hud:_buildSettings()
 	local page = self.pages.Settings
+	self.soundButton = self:_button(
+		page,
+		"Sound effects   ·   On",
+		C.paper,
+		UDim2.fromOffset(2, 4),
+		UDim2.new(1, -12, 0, 48),
+		function()
+			self.sfxEnabled = not self.sfxEnabled
+			self.soundButton.Text = "Sound effects   ·   " .. (if self.sfxEnabled then "On" else "Off")
+			if self.sfxEnabled then
+				self:_sound("ui")
+			end
+		end
+	)
 	self.motionButton = self:_button(
 		page,
-		"REDUCED MOTION: OFF",
-		C.mint,
-		UDim2.fromOffset(2, 5),
-		UDim2.new(1, -12, 0, 52),
+		"Reduced motion   ·   Off",
+		C.paper,
+		UDim2.fromOffset(2, 62),
+		UDim2.new(1, -12, 0, 48),
 		function()
 			self.reducedMotion = not self.reducedMotion
-			self.motionButton.Text = "REDUCED MOTION: " .. (if self.reducedMotion then "ON" else "OFF")
+			self.motionButton.Text = "Reduced motion   ·   " .. (if self.reducedMotion then "On" else "Off")
 			if self.reducedMotion and self.revealTween then
 				self.revealTween:Cancel()
 				self.revealTween = nil
@@ -614,77 +675,64 @@ function Hud:_buildSettings()
 	)
 	self.effectsButton = self:_button(
 		page,
-		"VISUAL EFFECTS: ON",
-		C.lilac,
-		UDim2.fromOffset(2, 72),
-		UDim2.new(1, -12, 0, 52),
+		"Visual effects   ·   On",
+		C.paper,
+		UDim2.fromOffset(2, 120),
+		UDim2.new(1, -12, 0, 48),
 		function()
 			self.effects = not self.effects
-			self.effectsButton.Text = "VISUAL EFFECTS: " .. (if self.effects then "ON" else "OFF")
+			self.effectsButton.Text = "Visual effects   ·   " .. (if self.effects then "On" else "Off")
 		end
 	)
 	local details = label(
 		page,
-		"Reduced motion stops idle bobbing and reveal animation.\n\nVisual effects controls decorative animal motion.\n\nNo background music. This prototype has no audio assets.\n\nSettings and progress last for this session only.",
-		14,
+		"Sound effects play for game events; there is no background music.\n\nReduced motion limits decorative movement and hatch animation.\n\nSESSION PROGRESS\nCoins, animals, upgrades, and settings reset when you leave. Saving is not available yet.",
+		13,
 		C.muted,
-		UDim2.fromOffset(2, 143),
-		UDim2.new(1, -12, 0, 186)
+		UDim2.fromOffset(3, 190),
+		UDim2.new(1, -15, 0, 210)
 	)
 	details.TextWrapped = true
 	details.TextYAlignment = Enum.TextYAlignment.Top
 end
 
 function Hud:_buildReveal()
+	-- A toast, not a full-screen input blocker: movement and prompts stay available.
 	self.revealOverlay = make("Frame", {
 		Name = "HatchReveal",
-		BackgroundColor3 = C.ink,
-		BackgroundTransparency = 0.38,
+		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		Visible = false,
-		ZIndex = 60,
-		Active = true,
+		ZIndex = 30,
+		Active = false,
 	}, self.root)
 	self.revealCard =
-		panel(self.revealOverlay, "NewFriend", C.paper, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(400, 400))
-	self.revealCard.AnchorPoint = Vector2.new(0.5, 0.5)
+		panel(self.revealOverlay, "NewFriend", C.paper, UDim2.new(0.5, 0, 1, -74), UDim2.fromOffset(346, 144))
+	self.revealCard.AnchorPoint = Vector2.new(0.5, 1)
 	self.revealScale = make("UIScale", { Scale = 1 }, self.revealCard)
-	local title = label(
+	self.revealTitle = label(
 		self.revealCard,
-		"YOU HATCHED A FRIEND!",
-		15,
+		"A NEW FRIEND!",
+		10,
 		C.muted,
-		UDim2.new(0, 16, 0, 19),
-		UDim2.new(1, -32, 0, 26),
+		UDim2.fromOffset(91, 12),
+		UDim2.new(1, -137, 0, 16),
 		true
 	)
-	title.TextXAlignment = Enum.TextXAlignment.Center
 	self.revealArt =
-		eggArt(self.revealCard, UDim2.new(0.5, -50, 0.17, 0), UDim2.fromOffset(100, 105), C.yellow, false)
+		eggArt(self.revealCard, UDim2.fromOffset(12, 27), UDim2.fromOffset(65, 78), C.yellow, false)
 	self.revealName =
-		label(self.revealCard, "", 24, C.ink, UDim2.new(0, 18, 0.46, 0), UDim2.new(1, -36, 0, 44), true)
+		label(self.revealCard, "", 16, C.ink, UDim2.fromOffset(90, 32), UDim2.new(1, -108, 0, 36), true)
 	self.revealName.TextWrapped = true
-	self.revealName.TextXAlignment = Enum.TextXAlignment.Center
 	self.revealRarity =
-		label(self.revealCard, "", 15, C.ink, UDim2.new(0, 18, 0.58, 0), UDim2.new(1, -36, 0, 26), true)
-	self.revealRarity.TextXAlignment = Enum.TextXAlignment.Center
-	self.revealIncome =
-		label(self.revealCard, "", 16, C.ink, UDim2.new(0, 18, 0.67, 0), UDim2.new(1, -36, 0, 23), true)
-	self.revealIncome.TextXAlignment = Enum.TextXAlignment.Center
+		label(self.revealCard, "", 12, C.ink, UDim2.fromOffset(91, 69), UDim2.new(1, -108, 0, 18), true)
 	self.revealNote =
-		label(self.revealCard, "", 11, C.muted, UDim2.new(0, 18, 0.74, 0), UDim2.new(1, -36, 0, 27))
+		label(self.revealCard, "", 11, C.muted, UDim2.fromOffset(91, 91), UDim2.new(1, -108, 0, 43))
 	self.revealNote.TextWrapped = true
-	self.revealNote.TextXAlignment = Enum.TextXAlignment.Center
-	self:_button(
-		self.revealCard,
-		"NICE!",
-		C.yellow,
-		UDim2.new(0.5, -75, 1, -61),
-		UDim2.fromOffset(150, 44),
-		function()
-			self.revealOverlay.Visible = false
-		end
-	)
+	self.revealNote.TextYAlignment = Enum.TextYAlignment.Top
+	self:_button(self.revealCard, "×", C.paper, UDim2.new(1, -45, 0, 0), UDim2.fromOffset(44, 44), function()
+		self.revealOverlay.Visible = false
+	end)
 end
 
 function Hud:update(state)
@@ -692,36 +740,40 @@ function Hud:update(state)
 		return
 	end
 	self.state = state
-	self.statValues[1].Text = "$" .. cash(state.cash)
-	self.statValues[2].Text = "+$" .. cash(state.income)
-	self.statValues[3].Text = "LV " .. tostring(state.speedLevel or 0)
+	self.cashLabel.Text = "$" .. cash(state.cash)
+	self.incomeLabel.Text = "+$" .. cash(state.income) .. " / sec"
+	self.speedLabel.Text = "Level " .. tostring(state.speedLevel or 0)
 	local cost = state.upgradeCost
-	local upgradeText = if cost then "SPEED UP · $" .. cash(cost) else "SPEED MAXED!"
+	local upgradeText = if cost then "Speed up  ·  $" .. cash(cost) else "Maximum speed"
 	self.upgrade.Text = upgradeText
 	self.shopUpgrade.Text = upgradeText
-	self.upgrade.BackgroundColor3 = if cost and (state.cash or 0) >= cost
-		then C.lilac
-		else Color3.fromRGB(214, 204, 235)
+	self.upgrade.BackgroundColor3 = if cost and (state.cash or 0) >= cost then C.mint else C.paper
 	self.shopUpgrade.BackgroundColor3 = self.upgrade.BackgroundColor3
 	self.shopSpeed.Text = string.format(
-		"Level %d / %d  ·  Movement speed %d",
+		"Level %d of %d  ·  Run speed %d",
 		state.speedLevel or 0,
 		self.config.speed.maxLevel,
 		state.walkSpeed or self.config.speed.base
 	)
 	self.deposit.Visible = state.carrying ~= nil
+	self.upgrade.Visible = state.carrying == nil
 	if state.carrying then
-		local zone = self.zoneById[state.carrying]
-		self.missionHeading.Text = "EGG ON BOARD · RUN HOME!"
-		self.missionText.Text = "Bring your "
-			.. (if zone then zone.name else "stolen")
-			.. " egg to base "
-			.. tostring(state.baseId or "")
-			.. ". Deposit it at your nest."
-		self.mission.BackgroundColor3 = C.yellow
+		local pursued = state.escaped ~= true
+		self.missionText.Text = if pursued
+			then "Run! Cross the red line to lose the guardian."
+			else "Egg secured! Take it to garden " .. tostring(state.baseId or "?") .. "."
+		self.missionDot.BackgroundColor3 = if pursued then C.pink else C.yellow
+		self.mission.BackgroundColor3 = if pursued
+			then C.pink:Lerp(C.paper, 0.68)
+			else C.yellow:Lerp(C.paper, 0.7)
 	else
-		self.missionHeading.Text = "BASE " .. tostring(state.baseId or "?") .. " · YOUR NEXT ADVENTURE"
-		self.missionText.Text = state.tutorial or "Follow the path. Approach an egg and use its steal prompt!"
+		local hatches = #(state.hatches or {})
+		local animals = #(state.animals or {})
+		self.missionText.Text = if hatches > 0
+			then "Eggs are warming. Explore while they hatch!"
+			elseif animals == 0 then "Follow the path. Hold the egg prompt to steal!"
+			else "Garden " .. tostring(state.baseId or "?") .. "  ·  Grow your crew. Upgrade. Explore."
+		self.missionDot.BackgroundColor3 = C.mint
 		self.mission.BackgroundColor3 = C.paper
 	end
 	local lines = {}
@@ -729,13 +781,10 @@ function Hud:update(state)
 		local unlocked = (state.speedLevel or 0) >= zone.requiredLevel
 		table.insert(
 			lines,
-			(if unlocked then "OPEN  " else "LOCKED  ")
-				.. zone.name
-				.. " · speed level "
-				.. tostring(zone.requiredLevel)
+			(if unlocked then "Open   " else "Level " .. tostring(zone.requiredLevel) .. "   ") .. zone.name
 		)
 	end
-	self.zoneGuide.Text = table.concat(lines, "\n")
+	self.zoneGuide.Text = table.concat(lines, "\n\n")
 	local owned = {}
 	for _, animal in ipairs(state.animals or {}) do
 		owned[animal.id] = (owned[animal.id] or 0) + 1
@@ -745,24 +794,26 @@ function Hud:update(state)
 		total += 1
 		local discovered = (state.discovered or {})[id] == true
 		local animal = self.config.animals[id]
+		local rarityColor = tint(self.config.rarities[animal.rarity].color)
 		if discovered then
 			found += 1
 		end
-		card.name.Text = if discovered then animal.name else "???"
+		card.name.Text = if discovered then animal.name else "Mystery friend"
 		card.income.Text = if discovered
-			then "$" .. cash(animal.income) .. "/s · owned " .. tostring(owned[id] or 0)
+			then "$" .. cash(animal.income) .. "/s  ·  Owned " .. tostring(owned[id] or 0)
 			else "Not discovered"
+		card.rarity.TextColor3 = if discovered then rarityColor:Lerp(C.ink, 0.62) else C.muted
 		card.frame.BackgroundColor3 = if discovered
-			then tint(self.config.rarities[animal.rarity].color):Lerp(C.paper, 0.76)
-			else Color3.fromRGB(243, 240, 247)
+			then rarityColor:Lerp(C.paper, 0.87)
+			else C.paper:Lerp(C.muted, 0.08)
 		if discovered and not card.discovered then
 			card.art:Destroy()
-			card.art = animalArt(card.frame, UDim2.fromOffset(7, 19), UDim2.fromOffset(52, 64), animal)
+			card.art = animalArt(card.frame, UDim2.new(0.5, -34, 0, 9), UDim2.fromOffset(68, 70), animal)
 			card.discovered = true
 		end
 	end
 	self.collectionCount.Text = string.format(
-		"%d / %d discovered · %d / %d animal spaces",
+		"%d / %d discovered   ·   %d / %d in your garden",
 		found,
 		total,
 		#(state.animals or {}),
@@ -777,6 +828,7 @@ function Hud:_tick()
 	end
 	local now = os.clock()
 	self.noticeFrame.Visible = now < self.noticeUntil
+	self.mission.Visible = not self.noticeFrame.Visible
 	if self.revealOverlay.Visible and now >= self.revealUntil then
 		self.revealOverlay.Visible = false
 	end
@@ -784,18 +836,20 @@ function Hud:_tick()
 	for _, hatch in ipairs(if self.state then self.state.hatches or {} else {}) do
 		bySlot[hatch.slot] = hatch
 	end
+	local occupied = false
 	local serverNow = Workspace:GetServerTimeNow()
 	for index, slot in ipairs(self.slotLabels) do
 		local hatch = bySlot[index]
+		slot.Parent.Visible = hatch ~= nil
 		if hatch then
+			occupied = true
 			local remaining = math.max(0, math.ceil(hatch.readyAt - serverNow))
-			slot.Text = if remaining > 0 then "EGG · " .. tostring(remaining) .. "s" else "Hatching!"
-			slot.TextColor3 = C.ink
-		else
-			slot.Text = "○ Empty"
-			slot.TextColor3 = C.muted
+			slot.Text = if remaining > 0
+				then "Nest " .. index .. "  ·  " .. remaining .. "s"
+				else "Hatching!"
 		end
 	end
+	self.hatching.Visible = occupied
 end
 
 function Hud:notice(payload)
@@ -804,11 +858,12 @@ function Hud:notice(payload)
 	end
 	self.noticeText.Text = tostring(payload.text or "")
 	self.noticeFrame.BackgroundColor3 = if payload.kind == "error"
-		then C.pink
+		then C.pink:Lerp(C.paper, 0.35)
 		elseif payload.kind == "success" then C.mint
-		else C.yellow
+		else C.yellow:Lerp(C.paper, 0.3)
 	self.noticeUntil = os.clock() + 4
 	self.noticeFrame.Visible = true
+	self.mission.Visible = false
 end
 
 function Hud:reveal(payload)
@@ -820,29 +875,28 @@ function Hud:reveal(payload)
 		return
 	end
 	local rarity = self.config.rarities[animal.rarity]
+	self.revealTitle.Text = if payload.kept == false then "DISCOVERED!" else "A NEW FRIEND!"
 	self.revealName.Text = animal.name
-	self.revealRarity.Text = string.upper(animal.rarity)
-	self.revealRarity.TextColor3 = tint(rarity.color):Lerp(C.ink, 0.28)
-	self.revealIncome.Text = "$" .. cash(payload.income or animal.income) .. "/s animal income"
+	self.revealRarity.Text = animal.rarity .. "  ·  $" .. cash(payload.income or animal.income) .. "/s"
+	self.revealRarity.TextColor3 = tint(rarity.color):Lerp(C.ink, 0.62)
 	self.revealNote.Text = if payload.kept == false
-		then "Discovered! Your eight higher earners stayed on display."
-		elseif payload.replacedName then "Replaced " .. payload.replacedName .. " in your full collection."
-		else animal.personality or "Your newest nest mate!"
-	self.revealCard.BackgroundColor3 = tint(rarity.color):Lerp(C.paper, 0.87)
+		then "Collection updated. Your stronger earners kept their garden spots."
+		elseif payload.replacedName then "Moved in for " .. payload.replacedName .. "."
+		else animal.personality or "Your newest garden friend!"
+	self.revealCard.BackgroundColor3 = tint(rarity.color):Lerp(C.paper, 0.89)
 	self.revealArt:Destroy()
-	self.revealArt =
-		animalArt(self.revealCard, UDim2.new(0.5, -50, 0.17, 0), UDim2.fromOffset(100, 105), animal)
+	self.revealArt = animalArt(self.revealCard, UDim2.fromOffset(12, 27), UDim2.fromOffset(65, 78), animal)
 	self.revealOverlay.Visible = true
-	self.revealUntil = os.clock() + 8
+	self.revealUntil = os.clock() + 3
 	if self.revealTween then
 		self.revealTween:Cancel()
 		self.revealTween = nil
 	end
 	if not self.reducedMotion and self.effects then
-		self.revealScale.Scale = 0.84
+		self.revealScale.Scale = 0.94
 		self.revealTween = TweenService:Create(
 			self.revealScale,
-			TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 			{ Scale = 1 }
 		)
 		self.revealTween:Play()

@@ -9,6 +9,7 @@ function Session.new(baseId, config, economy)
 		cash = config.startCash,
 		speedLevel = 0,
 		carrying = nil,
+		escaped = false,
 		hatches = {},
 		animals = {},
 		discovered = {},
@@ -38,6 +39,15 @@ function Session:steal(zoneId)
 		return false, "Your hatch slots are full. Wait for an egg to hatch."
 	end
 	self.carrying = zoneId
+	self.escaped = false
+	return true
+end
+
+function Session:markEscaped(zoneId)
+	if self.carrying ~= zoneId or self.escaped then
+		return false
+	end
+	self.escaped = true
 	return true
 end
 
@@ -50,12 +60,14 @@ function Session:deposit(now)
 	local hatch = { slot = slot, zoneId = zone.id, readyAt = now + zone.hatchSeconds }
 	self.hatches[slot] = hatch
 	self.carrying = nil
+	self.escaped = false
 	return hatch
 end
 
 function Session:loseCarry()
 	local previous = self.carrying
 	self.carrying = nil
+	self.escaped = false
 	return previous
 end
 
@@ -102,7 +114,7 @@ function Session:snapshot()
 	for _, animal in self.animals do
 		table.insert(animals, { id = animal.id })
 	end
-	local nextZone = "All prototype zones unlocked!"
+	local nextZone = "All current zones unlocked!"
 	for _, zone in self.config.zones do
 		if self.speedLevel < zone.requiredLevel then
 			nextZone = zone.name .. " unlocks at speed level " .. zone.requiredLevel
@@ -117,15 +129,17 @@ function Session:snapshot()
 		upgradeCost = self.economy.upgradeCost(self.speedLevel),
 		baseId = self.baseId,
 		carrying = self.carrying,
+		escaped = self.escaped,
 		hatches = hatches,
 		animals = animals,
 		discovered = table.clone(self.discovered),
 		nextZone = nextZone,
-		tutorial = if self.carrying
-			then "Bring your egg to your own glowing base!"
+		tutorial = if self.carrying and not self.escaped
+			then "Run across the red boundary to escape the guardian!"
+			elseif self.carrying then "You escaped! Bring the egg to your own nest."
 			elseif
 				#self.animals == 0
-			then "Follow the path to Turtle Meadow. Hold the egg prompt, then run home!"
+			then "Take an egg in Turtle Meadow. Cross the red line, then bring it home!"
 			else "Your animals earn cash every second. Upgrade speed and try Rabbit Ridge!",
 		sessionOnly = true,
 	}
