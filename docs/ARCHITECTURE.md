@@ -6,6 +6,7 @@ This is a Rojo-compatible, session-only Roblox prototype. The server owns gamepl
 
 ```text
 default.project.json                 Rojo DataModel mapping and place defaults
+release/Steal-a-Goofy-Egg.rbxlx        Downloadable, checked-source Studio place
 src/
   shared/                            ReplicatedStorage.GoofyEgg.Shared
     Config.luau                      Balance, zones, rarity odds, animal catalog
@@ -83,7 +84,7 @@ Player departure ends targeting, removes carry visuals, disconnects that player'
 
 ## Development and later phases
 
-Run `python3 scripts/bootstrap.py`, then `python3 scripts/check.py` from the repository. Tools install under `.tools` by default; `GOOFY_TOOLS_DIR` can select another directory. The check script builds `build/Steal-a-Goofy-Egg.rbxlx`. See [Studio testing](STUDIO_TESTING.md) for the required engine checks. A successful source analysis or Rojo build does not demonstrate that Roblox gameplay works.
+Run `python3 scripts/bootstrap.py`, then `python3 scripts/check.py` from the repository. Tools install under `.tools` by default; `GOOFY_TOOLS_DIR` can select another directory. The check script builds `build/Steal-a-Goofy-Egg.rbxlx`; add `--release` to refresh the tracked `release/Steal-a-Goofy-Egg.rbxlx` download. See [Studio testing](STUDIO_TESTING.md) for the required engine checks. A successful source analysis or Rojo build does not demonstrate that Roblox gameplay works.
 
 Phase 1 does not use DataStoreService, MarketplaceService, cloud credentials, API access, music, or real-money prompts. Leaving or restarting loses all session progress, including discovery and upgrades; the HUD states this explicitly.
 

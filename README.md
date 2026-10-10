@@ -7,7 +7,7 @@ An original Roblox **Phase 1 prototype** built with Luau and Rojo. Take an egg, 
 ## Open the game in Roblox Studio — easiest route
 
 1. Install [Roblox Studio](https://create.roblox.com/) on Windows or macOS and sign in. Studio does not run in this Linux cloud environment.
-2. Download the generated [`build/Steal-a-Goofy-Egg.rbxlx`](build/Steal-a-Goofy-Egg.rbxlx) from this workspace. It is a local build artifact, so it is not committed to Git. If you only have a Git checkout, build it with Rojo as described below.
+2. Open the [ready-to-open Studio place on GitHub](release/Steal-a-Goofy-Egg.rbxlx), then click **Download raw file** (the download-arrow icon above the file). Save it as `Steal-a-Goofy-Egg.rbxlx`, not `.txt`. This file is committed in the repository; you do **not** need Python, Rojo, a plugin, or a terminal to try it. If GitHub shows XML text, use its download button rather than copying the text. You can also choose **Code → Download ZIP**, extract it, and find the file inside the `release` folder.
 3. In Studio choose **File → Open from File…** and select that `.rbxlx` file. An empty-looking editor is expected: the map and UI are created when Play starts.
 4. Choose **Play** (F5), not Run. Open **Output** from Studio's View/Window menu to check for errors.
 5. Your avatar spawns at one of five bases. Walk along the broad path to **Turtle Meadow**. Hold **E** at the egg, or use the on-screen proximity prompt on a touch device. Run home before the guardian catches you.
@@ -52,7 +52,7 @@ python3 scripts/bootstrap.py
 python3 scripts/check.py
 ```
 
-Checks include StyLua, Luau compilation, Roblox-aware static analysis with a Rojo sourcemap, 25 economy/session tests, and a validated `.rbxlx` build. No Roblox gameplay simulator is implied. Generated outputs live in ignored `build/`.
+Checks include StyLua, Luau compilation, Roblox-aware static analysis with a Rojo sourcemap, 25 economy/session tests, and a validated `.rbxlx` build. No Roblox gameplay simulator is implied. Generated outputs live in ignored `build/`. Maintainers can run `python3 scripts/check.py --release` to refresh the deliberately tracked `release/Steal-a-Goofy-Egg.rbxlx` after all checks pass. The `release` copy is the beginner-friendly GitHub download; source changes must be rebuilt to appear in it.
 
 ### On your own Windows or macOS computer
 

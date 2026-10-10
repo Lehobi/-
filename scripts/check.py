@@ -4,7 +4,10 @@
 These checks validate source and pure business logic; they do not run Roblox.
 """
 from pathlib import Path
+from collections import Counter
+import argparse
 import json
+import shutil
 import os
 import subprocess
 import sys
@@ -24,6 +27,9 @@ def run(tool, *args):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--release", action="store_true", help="Also refresh the tracked Studio place in release/")
+    args = parser.parse_args()
     BUILD.mkdir(exist_ok=True)
     files = sorted(str(p.relative_to(ROOT)) for folder in ("src", "tests") for p in (ROOT / folder).rglob("*.luau"))
     assert files, "No Luau source found"
@@ -49,6 +55,14 @@ def main():
     assert len(scripts) == 1 and len(clients) == 1, "Missing or unexpected game entrypoints"
     assert len(modules) == 6 and len(remotes) == 4, "Rojo hierarchy differs from the expected game modules/remotes"
     assert len(place.findall(".//Item[@class='RemoteFunction']")) == 1
+    packaged_sources = Counter(node.text or "" for node in place.findall(".//Properties/*[@name='Source']"))
+    expected_sources = Counter(source.read_text() for source in (ROOT / "src").rglob("*.luau"))
+    assert packaged_sources == expected_sources, "Built place does not exactly embed the checked game source"
+    if args.release:
+        release = ROOT / "release"
+        release.mkdir(exist_ok=True)
+        shutil.copyfile(BUILD / "Steal-a-Goofy-Egg.rbxlx", release / "Steal-a-Goofy-Egg.rbxlx")
+        print("Refreshed release/Steal-a-Goofy-Egg.rbxlx from this checked source tree.")
     print(f"\nPASS: {len(files)} Luau files, {len(tests)} executed suites, Roblox analysis, formatting, and place build.")
     print("Studio gameplay, rendering, touch input, and multiplayer behavior remain untested here.")
 

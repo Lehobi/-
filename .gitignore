@@ -6,3 +6,6 @@ sourcemap.json
 *.rbxm
 *.rbxmx
 .DS_Store
+
+# Intentional downloadable Studio artifact; other generated places stay ignored.
+!release/Steal-a-Goofy-Egg.rbxlx

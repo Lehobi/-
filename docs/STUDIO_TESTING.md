@@ -2,21 +2,16 @@
 
 **Roblox Studio has not been run in this Linux cloud environment.** The code and generated place need the engine tests below before anyone describes gameplay, multiplayer, mobile support, or performance as verified. All Studio rows in the release checklist are pending until a tester records results.
 
-## 1. Build and open the place
+## 1. Download and open the place
 
-1. In the repository terminal, run:
-
-   ```bash
-   python3 scripts/bootstrap.py
-   python3 scripts/check.py
-   ```
-
-   Tools are pinned and install into `.tools` by default. If this cloud setup already supplies them elsewhere, set `GOOFY_TOOLS_DIR` to that directory before running the scripts. The checker produces `build/Steal-a-Goofy-Egg.rbxlx`.
-2. Download or copy that `.rbxlx` file to a Windows or macOS computer with [Roblox Studio](https://create.roblox.com/docs/studio/setup) installed. Sign in to your Roblox account.
-3. In Studio choose **File → Open from File…** and select `Steal-a-Goofy-Egg.rbxlx`. Some Studio versions label this **Open…**. Open the place file itself; do not paste it into a script.
+1. Open [`release/Steal-a-Goofy-Egg.rbxlx`](../release/Steal-a-Goofy-Egg.rbxlx) on GitHub. Click **Download raw file** (the download-arrow icon above the file) and save the `.rbxlx` file to your computer. Alternatively choose **Code → Download ZIP**, extract it, and open the file from the `release` folder. **No build tools or terminal are needed.**
+2. Install [Roblox Studio](https://create.roblox.com/docs/studio/setup) on Windows or macOS and sign in to your Roblox account.
+3. In Studio choose **File → Open from File…** and select `Steal-a-Goofy-Egg.rbxlx`. Some Studio versions label this **Open…**. Open the place file itself; do not paste it into a script. If it was saved with a `.txt` extension, download it again using GitHub's download button.
 4. Open **Explorer**, **Properties**, and **Output** from Studio's View controls. The place can look empty in edit mode: its map, animals, prompts, and HUD are built when play starts.
 5. Click **Play** or press **F5**. Allow the character and world to finish loading. Output should contain `Steal a Goofy Egg: Phase 1 initialized` and no red errors.
 6. Click **Stop** or press **Shift+F5** before rebuilding, opening a replacement place, or synchronizing changed source. Runtime changes made while playing are not source edits and disappear when testing stops.
+
+For developers rebuilding on Linux, run `python3 scripts/bootstrap.py` then `python3 scripts/check.py` in the repository. Tools install into `.tools`; set `GOOFY_TOOLS_DIR` to reuse another prepared directory. This produces `build/Steal-a-Goofy-Egg.rbxlx`. `python3 scripts/check.py --release` also refreshes the tracked GitHub download after all checks pass.
 
 No Rojo Studio plugin is needed to open the built file. For ongoing live source editing, install the matching official Rojo plugin and run `rojo serve default.project.json` on the **same computer as Studio**, then connect the plugin to that local server. The cloud machine's localhost is not your desktop's localhost. Keep repository source as the source of truth and stop play before a new sync.
 
