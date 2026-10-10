@@ -1,0 +1,37 @@
+{
+  "name": "Steal a Goofy Egg",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "GoofyEgg": {
+        "$className": "Folder",
+        "Shared": { "$path": "src/shared" },
+        "Remotes": {
+          "$className": "Folder",
+          "State": { "$className": "RemoteEvent" },
+          "Action": { "$className": "RemoteEvent" },
+          "GetState": { "$className": "RemoteFunction" },
+          "Notice": { "$className": "RemoteEvent" },
+          "Hatch": { "$className": "RemoteEvent" }
+        }
+      }
+    },
+    "ServerScriptService": { "$className": "ServerScriptService", "GoofyEgg": { "$path": "src/server" } },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$properties": { "CharacterWalkSpeed": 16 },
+      "StarterPlayerScripts": { "$className": "StarterPlayerScripts", "GoofyEgg": { "$path": "src/client" } }
+    },
+    "StarterGui": { "$className": "StarterGui", "GoofyUI": { "$path": "src/ui" } },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": { "Gravity": 196.2, "FallenPartsDestroyHeight": -80 }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": { "ClockTime": 14, "Brightness": 2, "Ambient": [0.65, 0.67, 0.72], "OutdoorAmbient": [0.72, 0.74, 0.79] }
+    },
+    "SoundService": { "$className": "SoundService", "$properties": { "RespectFilteringEnabled": true } }
+  }
+}
