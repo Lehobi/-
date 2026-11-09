@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="المسواك">
+<meta name="theme-color" content="#2f7d4f">
+<title>قائمة المسواك</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f7d4f'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Reem+Kufi:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f1; --card:#ffffff; --fg:#1d2420; --muted:#69736c; --line:#dfe4dc;
+  --accent:#2f7d4f; --accent-soft:#e2f1e7; --danger:#b4432f;
+  --display:"Reem Kufi","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --body:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121614; --card:#1b201d; --fg:#e8ede9; --muted:#9aa49d; --line:#2b322e;
+  --accent:#4fbf7c; --accent-soft:#1d3427; --danger:#e77a63; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 130px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:18px 12px;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-size:1.75rem;margin:0}
+.meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;color:var(--muted);font-size:.9rem;flex-wrap:wrap}
+.count{font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;font-size:1rem;padding:10px 18px}
+.btn:focus-visible,.item button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:.9rem}
+.notice{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:.9rem}
+.notice.warn{background:var(--card);border:1px solid var(--line);color:var(--muted)}
+section{margin-top:22px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+h2{font-family:var(--display);font-size:1.15rem;margin:0}
+.sec-head span{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+ul{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;padding:0 12px 0 6px;border-top:1px solid var(--line);min-height:52px}
+.item:first-child{border-top:0}
+.toggle{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;color:inherit;font:inherit;text-align:right;padding:12px 0;cursor:pointer}
+.box{flex:none;width:26px;height:26px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;transition:background .15s,border-color .15s}
+.box svg{width:16px;height:16px;opacity:0}
+.done .box{background:var(--accent);border-color:var(--accent)}
+.done .box svg{opacity:1}
+.name{overflow-wrap:anywhere}
+.who{display:block;font-size:.78rem;color:var(--muted)}
+.new-tag{font-size:.72rem;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 7px;margin-inline-start:6px}
+.item.fresh:not(.done){box-shadow:inset -4px 0 0 var(--accent)}
+.done .name{color:var(--muted);text-decoration:line-through}
+.done{background:var(--accent-soft)}
+.del{flex:none;background:none;border:0;color:var(--muted);font-size:1.3rem;line-height:1;width:36px;height:36px;border-radius:8px;cursor:pointer}
+.del:hover{color:var(--danger)}
+.empty{padding:14px;color:var(--muted);font-size:.9rem}
+form.adder{position:fixed;inset:auto 0 0;background:var(--card);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:6}
+.form-in{max-width:560px;margin:0 auto;display:flex;gap:8px}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);min-width:0}
+.form-in input{flex:1 1 120px}
+.form-in select{flex:0 1 auto;padding-inline:8px}
+.form-in .add{flex:none;font:inherit;font-weight:700;padding:10px 18px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
+.panel{margin-top:16px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;display:grid;gap:14px}
+.panel h3{font-family:var(--display);margin:0;font-size:1.05rem}
+.panel p{margin:0;color:var(--muted);font-size:.9rem}
+.copyrow{display:flex;gap:8px;align-items:center}
+.copyrow input{flex:1;font-size:.85rem;direction:ltr;text-align:left}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.setup{padding-block:40px;display:grid;gap:16px;text-align:center;justify-items:center}
+.setup p{color:var(--muted);max-width:40ch;margin:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:20;max-width:calc(100% - 32px)}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>قائمة المسواك</h1>
+      <button class="btn" id="settingsBtn" type="button" hidden>الإعدادات</button>
+    </div>
+    <div id="listHead" hidden>
+      <div class="meta">
+        <span class="count" id="count">جاري التحميل…</span>
+        <div class="tools">
+          <button class="btn" id="copyBtn" type="button">نسخ الباقي</button>
+          <button class="btn" id="clearBtn" type="button">شيل الصحّات</button>
+        </div>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="confirm" id="confirm" hidden>
+        <span>تشيل العلامات عند الكل وترجع القائمة جديدة؟</span>
+        <button class="btn danger" id="yesClear" type="button">إي، شيلها</button>
+        <button class="btn" id="noClear" type="button">لا</button>
+      </div>
+      <div class="notice" id="newNote" hidden></div>
+      <div class="notice warn" id="status" hidden></div>
+    </div>
+  </header>
+
+  <div class="setup" id="setup" hidden>
+    <p>هاي أول مرة تفتح القائمة. دوس الزر حتى تنسوى قائمة جديدة فيها كل الأغراض، وبعدها تدز رابطها للأهل.</p>
+    <button class="btn primary" id="createBtn" type="button">سوّي القائمة</button>
+    <p id="setupErr" hidden></p>
+  </div>
+
+  <div class="panel" id="settings" hidden>
+    <div>
+      <h3>شسمك؟</h3>
+      <p>يطلع اسمك جنب الأغراض اللي تزيدها.</p>
+    </div>
+    <div class="row"><input id="myName" maxlength="30" placeholder="مثلاً: ماما" aria-label="اسمك"></div>
+    <div>
+      <h3>رابط القائمة للأهل</h3>
+      <p>دز هذا الرابط للأهل. أي واحد عنده الرابط يگدر يعدل، فلا تنشره برا العائلة.</p>
+    </div>
+    <div class="copyrow"><input id="shareLink" readonly aria-label="رابط القائمة"><button class="btn" type="button" data-copy="shareLink">نسخ</button></div>
+    <div>
+      <h3>الإشعارات على التلفون</h3>
+      <p>نزّل تطبيق ntfy من App Store، دوس +، والصق اسم القناة هذا. بعدها كل ما أحد يزيد غرض يوصلك إشعار.</p>
+    </div>
+    <div class="copyrow"><input id="topic" readonly aria-label="اسم قناة الإشعارات"><button class="btn" type="button" data-copy="topic">نسخ</button></div>
+    <label class="row"><input type="checkbox" id="muteMe"> لا تدز إشعار لمن أزيد أنا من هذا التلفون</label>
+    <div class="row"><button class="btn" id="closeSettings" type="button">تم</button></div>
+  </div>
+
+  <main id="list"></main>
+</div>
+
+<form class="adder" id="addForm" autocomplete="off" hidden>
+  <div class="form-in">
+    <input id="newItem" placeholder="زيد غرض جديد…" aria-label="اسم الغرض">
+    <select id="newSec" aria-label="القسم"></select>
+    <button class="add" type="submit">زيد</button>
+  </div>
+</form>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const API="https://jsonblob.com/api/jsonBlob";
+const NTFY="https://ntfy.sh/";
+const SECTIONS=[
+  {id:"meat",name:"اللحوم"},
+  {id:"veg",name:"خضروات وفواكه"},
+  {id:"cold",name:"مفرزنات وثلاجة"},
+  {id:"other",name:"أشياء ثانية"},
+  {id:"clean",name:"منظفات وزقاير"}
+];
+const DEFAULTS={
+  meat:["لحم مفروم","نقانق"],
+  veg:["بطاط","طماطم","خيار","جزر","بصل","ثوم","فلفل حار","فلفل بارد","زهرة","خس","ليمون","موز","افندي"],
+  cold:["افخاذ دجاج مفرزن","صدور دجاج مفرزن","زنجر مفرزن","نجتس","جبن موزريلا","زبدة","كريمة","قشطة"],
+  other:["توست","صمون","خبز","خبز لبناني","معكرونة","تونا","كتشب","مايونيز","صوص سبايسي (شطة)","ورق غار","دارسين","لبتون","كورنفلكس","عصاير","كيكة المطاحن","كاب كيك","حليب عزوز (حليب أطفال)"],
+  clean:["فيري","تايد","كمفرت","ديتول","صابون","صابون إيد","شامبو","زقاير","كرز زقاير"]
+};
+
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const check='<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+
+let listId=null,state={items:[]},loaded=false,busy=false,lastSeen=0;
+let device=store.get("masswak-device");if(!device){device=uid();store.set("masswak-device",device)}
+
+function status(msg){$("status").textContent=msg||"";$("status").hidden=!msg}
+let toastT;function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3500)}
+const myName=()=>store.get("masswak-name")||"";
+const topicName=()=>"masswak-"+String(listId).replace(/[^A-Za-z0-9_-]/g,"").slice(0,48);
+const isFresh=i=>lastSeen>0&&i.dev!==device&&(i.at||0)>lastSeen;
+
+function readListId(){
+  const m=location.hash.match(/l=([A-Za-z0-9_-]+)/);
+  if(m){store.set("masswak-list",m[1]);return m[1]}
+  return store.get("masswak-list");
+}
+
+async function fetchState(){
+  const r=await fetch(API+"/"+listId,{headers:{Accept:"application/json"},cache:"no-store"});
+  if(!r.ok)throw new Error("get "+r.status);
+  const d=await r.json();
+  return d&&Array.isArray(d.items)?d:{items:[]};
+}
+async function putState(s){
+  const r=await fetch(API+"/"+listId,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(s)});
+  if(!r.ok)throw new Error("put "+r.status);
+}
+
+// read the newest copy, apply the change to it, save it back
+let queue=Promise.resolve();
+function mutate(fn){
+  fn(state);render();
+  queue=queue.then(async()=>{
+    busy=true;
+    try{const fresh=await fetchState();fn(fresh);await putState(fresh);state=fresh;status("")}
+    catch(e){status("ما انحفظ التغيير. تأكد من الإنترنت وجرب مرة ثانية.")}
+    finally{busy=false;render()}
+  });
+  return queue;
+}
+
+function notify(text){
+  if(store.get("masswak-mute")==="1")return;
+  fetch(NTFY,{method:"POST",body:JSON.stringify({topic:topicName(),title:"قائمة المسواك",message:text,tags:["shopping_cart"],click:location.href.split("#")[0]+"#l="+listId})}).catch(()=>{});
+}
+
+function render(){
+  const items=state.items;
+  $("list").innerHTML=SECTIONS.map(s=>{
+    const its=items.filter(i=>i.sec===s.id).sort((a,b)=>(a.at||0)-(b.at||0));
+    const done=its.filter(i=>i.done).length;
+    const rows=its.length?its.map(i=>{
+      const fresh=isFresh(i);
+      const who=i.by&&i.dev!==device?`<span class="who">زادها ${esc(i.by)}</span>`:"";
+      return `<li class="item${i.done?" done":""}${fresh?" fresh":""}" data-id="${esc(i.id)}">
+        <button class="toggle" type="button" aria-pressed="${!!i.done}"><span class="box">${check}</span><span class="name">${esc(i.name)}${fresh?'<span class="new-tag">جديد</span>':""}${who}</span></button>
+        <button class="del" type="button" aria-label="احذف ${esc(i.name)}">×</button></li>`}).join("")
+      :`<li class="empty">${loaded?"ماكو شي بهذا القسم":"…"}</li>`;
+    return `<section><div class="sec-head"><h2>${s.name}</h2><span>${done}/${its.length}</span></div><ul>${rows}</ul></section>`;
+  }).join("");
+  const total=items.length,done=items.filter(i=>i.done).length;
+  if(loaded)$("count").textContent=`أخذتوا ${done} من ${total}`;
+  $("bar").style.width=total?(done/total*100)+"%":"0";
+  const fresh=items.filter(isFresh);
+  $("newNote").hidden=!fresh.length;
+  if(fresh.length)$("newNote").textContent=`انضاف ${fresh.length} ${fresh.length===1?"غرض جديد":"أغراض جديدة"} من آخر مرة فتحت القائمة: ${fresh.map(i=>i.name).join("، ")}`;
+}
+
+let known=null;
+async function refresh(){
+  if(busy||document.hidden)return;
+  try{
+    const s=await fetchState();
+    if(busy)return;
+    if(known){for(const i of s.items)if(!known.has(i.id)&&i.dev!==device)toast(`${i.by||"واحد من الأهل"} زاد: ${i.name}`)}
+    known=new Set(s.items.map(i=>i.id));
+    state=s;loaded=true;status("");render();
+  }catch(e){status(loaded?"ما گدرنا نحدّث القائمة، يمكن الإنترنت ضعيف.":"القائمة ما وصلت. تأكد من الإنترنت وافتحها مرة ثانية.")}
+}
+
+function startList(){
+  $("setup").hidden=true;$("listHead").hidden=false;$("addForm").hidden=false;$("settingsBtn").hidden=false;
+  if(!location.hash.includes("l="))history.replaceState(null,"","#l="+listId);
+  const k="masswak-seen-"+listId;lastSeen=Number(store.get(k))||0;store.set(k,String(Date.now()));
+  const link=location.href.split("#")[0]+"#l="+listId;
+  $("shareLink").value=link;$("topic").value=topicName();
+  $("myName").value=myName();$("muteMe").checked=store.get("masswak-mute")==="1";
+  render();refresh();
+  setInterval(refresh,5000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+}
+
+$("createBtn").onclick=async()=>{
+  const b=$("createBtn");b.disabled=true;b.textContent="لحظة…";$("setupErr").hidden=true;
+  let n=0;const items=[];
+  for(const s of SECTIONS)for(const name of DEFAULTS[s.id])items.push({id:"s"+(n++),name,sec:s.id,done:false,at:n});
+  try{
+    const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({items})});
+    const loc=r.headers.get("Location")||r.headers.get("X-jsonblob-id")||r.headers.get("x-jsonblob")||"";
+    const id=loc.split("/").pop();
+    if(!r.ok||!id)throw new Error("create");
+    listId=id;store.set("masswak-list",id);startList();
+    $("settings").hidden=false;
+  }catch(e){
+    b.disabled=false;b.textContent="سوّي القائمة";
+    $("setupErr").textContent="ما گدرنا نسوي القائمة. تأكد من الإنترنت وجرب مرة ثانية.";$("setupErr").hidden=false;
+  }
+};
+
+$("list").addEventListener("click",e=>{
+  const li=e.target.closest(".item");if(!li)return;const id=li.dataset.id;
+  if(e.target.closest(".del"))mutate(s=>{s.items=s.items.filter(i=>i.id!==id)});
+  else if(e.target.closest(".toggle")){
+    const cur=state.items.find(i=>i.id===id);if(!cur)return;const to=!cur.done;
+    mutate(s=>{const it=s.items.find(i=>i.id===id);if(it)it.done=to});
+  }
+});
+
+const sel=$("newSec");
+sel.innerHTML=SECTIONS.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+sel.value="other";
+$("addForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const inp=$("newItem");const name=inp.value.trim().slice(0,80);if(!name)return;
+  if(!myName()){$("settings").hidden=false;$("myName").focus();toast("اكتب اسمك أول، بعدين زيد الغرض");return}
+  inp.value="";
+  const item={id:uid(),name,sec:sel.value,done:false,at:Date.now(),by:myName(),dev:device};
+  mutate(s=>{s.items.push(item)}).then(()=>notify(`${item.by} زاد: ${name}`));
+  inp.focus();
+});
+
+$("clearBtn").onclick=()=>{$("confirm").hidden=false};
+$("noClear").onclick=()=>{$("confirm").hidden=true};
+$("yesClear").onclick=()=>{$("confirm").hidden=true;mutate(s=>{s.items.forEach(i=>i.done=false)})};
+
+$("copyBtn").onclick=async e=>{
+  const txt=SECTIONS.map(s=>{const r=state.items.filter(i=>i.sec===s.id&&!i.done);return r.length?s.name+":\n"+r.map(i=>"- "+i.name).join("\n"):""}).filter(Boolean).join("\n\n");
+  const b=e.currentTarget;
+  try{await navigator.clipboard.writeText(txt);b.textContent="انتسخ ✓"}catch(err){b.textContent="ما انتسخ"}
+  setTimeout(()=>b.textContent="نسخ الباقي",1600);
+};
+
+$("settingsBtn").onclick=()=>{$("settings").hidden=!$("settings").hidden};
+$("closeSettings").onclick=()=>{$("settings").hidden=true};
+$("myName").addEventListener("input",e=>store.set("masswak-name",e.target.value.trim()));
+$("muteMe").addEventListener("change",e=>store.set("masswak-mute",e.target.checked?"1":"0"));
+document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{
+  const inp=$(b.dataset.copy);
+  try{await navigator.clipboard.writeText(inp.value);b.textContent="انتسخ ✓"}catch(e){inp.select()}
+  setTimeout(()=>b.textContent="نسخ",1600);
+});
+window.addEventListener("hashchange",()=>{const id=readListId();if(id&&id!==listId)location.reload()});
+
+listId=readListId();
+if(listId)startList();else $("setup").hidden=false;
+</script>
+</body>
+</html>
