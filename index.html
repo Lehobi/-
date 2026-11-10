@@ -92,16 +92,16 @@ input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-
     </div>
     <div id="listHead" hidden>
       <div class="meta">
-        <span class="count" id="count">جاري التحميل…</span>
+        <span class="count" id="count">قاعد يحمّل…</span>
         <div class="tools">
-          <button class="btn" id="copyBtn" type="button">نسخ الباقي</button>
-          <button class="btn" id="clearBtn" type="button">شيل الصحّات</button>
+          <button class="btn" id="copyBtn" type="button">انسخ الباقي</button>
+          <button class="btn" id="clearBtn" type="button">شيل الصح</button>
         </div>
       </div>
       <div class="bar"><i id="bar"></i></div>
       <div class="confirm" id="confirm" hidden>
-        <span>تشيل العلامات عند الكل وترجع القائمة جديدة؟</span>
-        <button class="btn danger" id="yesClear" type="button">إي، شيلها</button>
+        <span>تبي تشيل الصح عن كل الأغراض عند الكل؟</span>
+        <button class="btn danger" id="yesClear" type="button">إي، شيله</button>
         <button class="btn" id="noClear" type="button">لا</button>
       </div>
       <div class="notice" id="newNote" hidden></div>
@@ -110,28 +110,26 @@ input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-
   </header>
 
   <div class="setup" id="setup" hidden>
-    <p>هاي أول مرة تفتح القائمة. دوس الزر حتى تنسوى قائمة جديدة فيها كل الأغراض، وبعدها تدز رابطها للأهل.</p>
-    <button class="btn primary" id="createBtn" type="button">سوّي القائمة</button>
-    <p id="setupErr" hidden></p>
+    <p>القائمة مو جاهزة للحين. لازم ينحط رابط قاعدة البيانات بالصفحة أول.</p>
   </div>
 
   <div class="panel" id="settings" hidden>
     <div>
-      <h3>شسمك؟</h3>
-      <p>يطلع اسمك جنب الأغراض اللي تزيدها.</p>
+      <h3>شنو اسمك؟</h3>
+      <p>يطلع اسمك جنب الأغراض اللي تضيفها.</p>
     </div>
     <div class="row"><input id="myName" maxlength="30" placeholder="مثلاً: ماما" aria-label="اسمك"></div>
     <div>
       <h3>رابط القائمة للأهل</h3>
-      <p>دز هذا الرابط للأهل. أي واحد عنده الرابط يگدر يعدل، فلا تنشره برا العائلة.</p>
+      <p>ارسل هالرابط للأهل. أي أحد عنده الرابط يقدر يعدّل، فلا تنشره برا العايلة.</p>
     </div>
-    <div class="copyrow"><input id="shareLink" readonly aria-label="رابط القائمة"><button class="btn" type="button" data-copy="shareLink">نسخ</button></div>
+    <div class="copyrow"><input id="shareLink" readonly aria-label="رابط القائمة"><button class="btn" type="button" data-copy="shareLink">انسخ</button></div>
     <div>
       <h3>الإشعارات على التلفون</h3>
-      <p>نزّل تطبيق ntfy من App Store، دوس +، والصق اسم القناة هذا. بعدها كل ما أحد يزيد غرض يوصلك إشعار.</p>
+      <p>نزّل تطبيق ntfy من App Store، اضغط +، والصق اسم القناة هذا. بعدها كل ما أحد يضيف غرض يوصلك إشعار.</p>
     </div>
-    <div class="copyrow"><input id="topic" readonly aria-label="اسم قناة الإشعارات"><button class="btn" type="button" data-copy="topic">نسخ</button></div>
-    <label class="row"><input type="checkbox" id="muteMe"> لا تدز إشعار لمن أزيد أنا من هذا التلفون</label>
+    <div class="copyrow"><input id="topic" readonly aria-label="اسم قناة الإشعارات"><button class="btn" type="button" data-copy="topic">انسخ</button></div>
+    <label class="row"><input type="checkbox" id="muteMe"> لا ترسل إشعار لما أضيف أنا من هالتلفون</label>
     <div class="row"><button class="btn" id="closeSettings" type="button">تم</button></div>
   </div>
 
@@ -140,29 +138,31 @@ input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-
 
 <form class="adder" id="addForm" autocomplete="off" hidden>
   <div class="form-in">
-    <input id="newItem" placeholder="زيد غرض جديد…" aria-label="اسم الغرض">
+    <input id="newItem" placeholder="ضيف غرض جديد…" aria-label="اسم الغرض">
     <select id="newSec" aria-label="القسم"></select>
-    <button class="add" type="submit">زيد</button>
+    <button class="add" type="submit">ضيف</button>
   </div>
 </form>
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const API="https://jsonblob.com/api/jsonBlob";
+// رابط Firebase Realtime Database (ينحط بعد ما تسوي المشروع)
+const DB_URL="";
+const TOPIC="masswak-f77e9debb6bb14f6";
 const NTFY="https://ntfy.sh/";
 const SECTIONS=[
   {id:"meat",name:"اللحوم"},
-  {id:"veg",name:"خضروات وفواكه"},
-  {id:"cold",name:"مفرزنات وثلاجة"},
-  {id:"other",name:"أشياء ثانية"},
+  {id:"veg",name:"خضار وفواكه"},
+  {id:"cold",name:"مجمّدات وثلاجة"},
+  {id:"other",name:"أغراض ثانية"},
   {id:"clean",name:"منظفات وزقاير"}
 ];
 const DEFAULTS={
   meat:["لحم مفروم","نقانق"],
-  veg:["بطاط","طماطم","خيار","جزر","بصل","ثوم","فلفل حار","فلفل بارد","زهرة","خس","ليمون","موز","افندي"],
-  cold:["افخاذ دجاج مفرزن","صدور دجاج مفرزن","زنجر مفرزن","نجتس","جبن موزريلا","زبدة","كريمة","قشطة"],
-  other:["توست","صمون","خبز","خبز لبناني","معكرونة","تونا","كتشب","مايونيز","صوص سبايسي (شطة)","ورق غار","دارسين","لبتون","كورنفلكس","عصاير","كيكة المطاحن","كاب كيك","حليب عزوز (حليب أطفال)"],
-  clean:["فيري","تايد","كمفرت","ديتول","صابون","صابون إيد","شامبو","زقاير","كرز زقاير"]
+  veg:["بطاط","طماط","خيار","جزر","بصل","ثوم","فلفل حار","فلفل بارد","زهرة","خس","ليمون","موز","يوسفي"],
+  cold:["أفخاذ دجاج مجمّد","صدور دجاج مجمّد","زنجر مجمّد","ناجتس","جبن موزريلا","زبدة","كريمة","قشطة"],
+  other:["توست","صمون","خبز","خبز لبناني","معكرونة","تونة","كاتشب","مايونيز","صوص سبايسي (شطة)","ورق غار","دارسين","ليبتون","كورن فليكس","عصاير","كيكة المطاحن","كب كيك","حليب عزوز (حليب أطفال)"],
+  clean:["فيري","تايد","كمفرت","ديتول","صابون","صابون يدين","شامبو","زقاير","زقاير كرز"]
 };
 
 const $=id=>document.getElementById(id);
@@ -170,63 +170,64 @@ const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},se
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const check='<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+const BASE=DB_URL.replace(/\/+$/,"")+"/masswak/items";
 
-let listId=null,state={items:[]},loaded=false,busy=false,lastSeen=0;
+let items=[],loaded=false,lastSeen=0,known=null;
 let device=store.get("masswak-device");if(!device){device=uid();store.set("masswak-device",device)}
+const myName=()=>store.get("masswak-name")||"";
+const isFresh=i=>lastSeen>0&&i.dev!==device&&(i.at||0)>lastSeen;
 
 function status(msg){$("status").textContent=msg||"";$("status").hidden=!msg}
 let toastT;function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3500)}
-const myName=()=>store.get("masswak-name")||"";
-const topicName=()=>"masswak-"+String(listId).replace(/[^A-Za-z0-9_-]/g,"").slice(0,48);
-const isFresh=i=>lastSeen>0&&i.dev!==device&&(i.at||0)>lastSeen;
 
-function readListId(){
-  const m=location.hash.match(/l=([A-Za-z0-9_-]+)/);
-  if(m){store.set("masswak-list",m[1]);return m[1]}
-  return store.get("masswak-list");
+async function req(path,method,body){
+  const r=await fetch(BASE+path+".json",{method:method||"GET",cache:"no-store",body:body===undefined?undefined:JSON.stringify(body)});
+  if(!r.ok)throw new Error(method+" "+r.status);
+  return r.json();
 }
 
-async function fetchState(){
-  const r=await fetch(API+"/"+listId,{headers:{Accept:"application/json"},cache:"no-store"});
-  if(!r.ok)throw new Error("get "+r.status);
-  const d=await r.json();
-  return d&&Array.isArray(d.items)?d:{items:[]};
-}
-async function putState(s){
-  const r=await fetch(API+"/"+listId,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(s)});
-  if(!r.ok)throw new Error("put "+r.status);
+function apply(obj){
+  const list=obj&&typeof obj==="object"?Object.entries(obj).map(([id,v])=>Object.assign({},v,{id})):[];
+  if(known){for(const i of list)if(!known.has(i.id)&&i.dev!==device)toast(`${i.by||"واحد من الأهل"} ضاف: ${i.name}`)}
+  known=new Set(list.map(i=>i.id));
+  items=list;loaded=true;render();
 }
 
-// read the newest copy, apply the change to it, save it back
-let queue=Promise.resolve();
-function mutate(fn){
-  fn(state);render();
-  queue=queue.then(async()=>{
-    busy=true;
-    try{const fresh=await fetchState();fn(fresh);await putState(fresh);state=fresh;status("")}
-    catch(e){status("ما انحفظ التغيير. تأكد من الإنترنت وجرب مرة ثانية.")}
-    finally{busy=false;render()}
-  });
-  return queue;
+async function load(){
+  try{
+    let obj=await req("","GET");
+    if(obj===null){
+      // أول مرة: نحط الأغراض الأساسية
+      const seed={};let n=0;
+      for(const s of SECTIONS)for(const name of DEFAULTS[s.id]){n++;seed["s"+String(n).padStart(2,"0")]={name,sec:s.id,done:false,at:n}}
+      await req("","PUT",seed);obj=seed;
+    }
+    apply(obj);status("");
+  }catch(e){status(loaded?"ما قدرنا نحدّث القائمة، يمكن النت ضعيف.":"القائمة ما وصلت. تأكد من النت وافتحها مرة ثانية.")}
+}
+
+async function save(fn,optimistic){
+  if(optimistic){optimistic();render()}
+  try{await fn();status("")}
+  catch(e){status("ما انحفظ التغيير. تأكد من النت وجرّب مرة ثانية.");load()}
 }
 
 function notify(text){
   if(store.get("masswak-mute")==="1")return;
-  fetch(NTFY,{method:"POST",body:JSON.stringify({topic:topicName(),title:"قائمة المسواك",message:text,tags:["shopping_cart"],click:location.href.split("#")[0]+"#l="+listId})}).catch(()=>{});
+  fetch(NTFY,{method:"POST",body:JSON.stringify({topic:TOPIC,title:"قائمة المسواك",message:text,tags:["shopping_cart"],click:location.href.split("#")[0]})}).catch(()=>{});
 }
 
 function render(){
-  const items=state.items;
   $("list").innerHTML=SECTIONS.map(s=>{
     const its=items.filter(i=>i.sec===s.id).sort((a,b)=>(a.at||0)-(b.at||0));
     const done=its.filter(i=>i.done).length;
     const rows=its.length?its.map(i=>{
       const fresh=isFresh(i);
-      const who=i.by&&i.dev!==device?`<span class="who">زادها ${esc(i.by)}</span>`:"";
+      const who=i.by&&i.dev!==device?`<span class="who">ضافه ${esc(i.by)}</span>`:"";
       return `<li class="item${i.done?" done":""}${fresh?" fresh":""}" data-id="${esc(i.id)}">
         <button class="toggle" type="button" aria-pressed="${!!i.done}"><span class="box">${check}</span><span class="name">${esc(i.name)}${fresh?'<span class="new-tag">جديد</span>':""}${who}</span></button>
-        <button class="del" type="button" aria-label="احذف ${esc(i.name)}">×</button></li>`}).join("")
-      :`<li class="empty">${loaded?"ماكو شي بهذا القسم":"…"}</li>`;
+        <button class="del" type="button" aria-label="امسح ${esc(i.name)}">×</button></li>`}).join("")
+      :`<li class="empty">${loaded?"ما في شي بهالقسم":"…"}</li>`;
     return `<section><div class="sec-head"><h2>${s.name}</h2><span>${done}/${its.length}</span></div><ul>${rows}</ul></section>`;
   }).join("");
   const total=items.length,done=items.filter(i=>i.done).length;
@@ -237,54 +238,32 @@ function render(){
   if(fresh.length)$("newNote").textContent=`انضاف ${fresh.length} ${fresh.length===1?"غرض جديد":"أغراض جديدة"} من آخر مرة فتحت القائمة: ${fresh.map(i=>i.name).join("، ")}`;
 }
 
-let known=null;
-async function refresh(){
-  if(busy||document.hidden)return;
+function live(){
+  // تحديث مباشر من Firebase، ولو ما اشتغل نرجع للتحديث كل كم ثانية
+  let es=null;
   try{
-    const s=await fetchState();
-    if(busy)return;
-    if(known){for(const i of s.items)if(!known.has(i.id)&&i.dev!==device)toast(`${i.by||"واحد من الأهل"} زاد: ${i.name}`)}
-    known=new Set(s.items.map(i=>i.id));
-    state=s;loaded=true;status("");render();
-  }catch(e){status(loaded?"ما گدرنا نحدّث القائمة، يمكن الإنترنت ضعيف.":"القائمة ما وصلت. تأكد من الإنترنت وافتحها مرة ثانية.")}
+    es=new EventSource(BASE+".json");
+    let t;const kick=()=>{clearTimeout(t);t=setTimeout(load,300)};
+    es.addEventListener("put",kick);es.addEventListener("patch",kick);
+  }catch(e){}
+  setInterval(()=>{if(!document.hidden)load()},es?30000:5000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
 }
 
-function startList(){
-  $("setup").hidden=true;$("listHead").hidden=false;$("addForm").hidden=false;$("settingsBtn").hidden=false;
-  if(!location.hash.includes("l="))history.replaceState(null,"","#l="+listId);
-  const k="masswak-seen-"+listId;lastSeen=Number(store.get(k))||0;store.set(k,String(Date.now()));
-  const link=location.href.split("#")[0]+"#l="+listId;
-  $("shareLink").value=link;$("topic").value=topicName();
+function start(){
+  $("listHead").hidden=false;$("addForm").hidden=false;$("settingsBtn").hidden=false;
+  lastSeen=Number(store.get("masswak-seen"))||0;store.set("masswak-seen",String(Date.now()));
+  $("shareLink").value=location.href.split("#")[0];$("topic").value=TOPIC;
   $("myName").value=myName();$("muteMe").checked=store.get("masswak-mute")==="1";
-  render();refresh();
-  setInterval(refresh,5000);
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+  if(!myName())$("settings").hidden=false;
+  render();load();live();
 }
-
-$("createBtn").onclick=async()=>{
-  const b=$("createBtn");b.disabled=true;b.textContent="لحظة…";$("setupErr").hidden=true;
-  let n=0;const items=[];
-  for(const s of SECTIONS)for(const name of DEFAULTS[s.id])items.push({id:"s"+(n++),name,sec:s.id,done:false,at:n});
-  try{
-    const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({items})});
-    const loc=r.headers.get("Location")||r.headers.get("X-jsonblob-id")||r.headers.get("x-jsonblob")||"";
-    const id=loc.split("/").pop();
-    if(!r.ok||!id)throw new Error("create");
-    listId=id;store.set("masswak-list",id);startList();
-    $("settings").hidden=false;
-  }catch(e){
-    b.disabled=false;b.textContent="سوّي القائمة";
-    $("setupErr").textContent="ما گدرنا نسوي القائمة. تأكد من الإنترنت وجرب مرة ثانية.";$("setupErr").hidden=false;
-  }
-};
 
 $("list").addEventListener("click",e=>{
   const li=e.target.closest(".item");if(!li)return;const id=li.dataset.id;
-  if(e.target.closest(".del"))mutate(s=>{s.items=s.items.filter(i=>i.id!==id)});
-  else if(e.target.closest(".toggle")){
-    const cur=state.items.find(i=>i.id===id);if(!cur)return;const to=!cur.done;
-    mutate(s=>{const it=s.items.find(i=>i.id===id);if(it)it.done=to});
-  }
+  const it=items.find(i=>i.id===id);if(!it)return;
+  if(e.target.closest(".del"))save(()=>req("/"+id,"DELETE"),()=>{items=items.filter(i=>i.id!==id)});
+  else if(e.target.closest(".toggle")){const to=!it.done;save(()=>req("/"+id,"PATCH",{done:to}),()=>{it.done=to})}
 });
 
 const sel=$("newSec");
@@ -293,22 +272,27 @@ sel.value="other";
 $("addForm").addEventListener("submit",e=>{
   e.preventDefault();
   const inp=$("newItem");const name=inp.value.trim().slice(0,80);if(!name)return;
-  if(!myName()){$("settings").hidden=false;$("myName").focus();toast("اكتب اسمك أول، بعدين زيد الغرض");return}
+  if(!myName()){$("settings").hidden=false;$("myName").focus();toast("اكتب اسمك أول، بعدين ضيف الغرض");return}
   inp.value="";
-  const item={id:uid(),name,sec:sel.value,done:false,at:Date.now(),by:myName(),dev:device};
-  mutate(s=>{s.items.push(item)}).then(()=>notify(`${item.by} زاد: ${name}`));
+  const id=uid();const item={name,sec:sel.value,done:false,at:Date.now(),by:myName(),dev:device};
+  known&&known.add(id);
+  save(()=>req("/"+id,"PUT",item).then(()=>notify(`${item.by} ضاف: ${name}`)),()=>{items.push(Object.assign({id},item))});
   inp.focus();
 });
 
 $("clearBtn").onclick=()=>{$("confirm").hidden=false};
 $("noClear").onclick=()=>{$("confirm").hidden=true};
-$("yesClear").onclick=()=>{$("confirm").hidden=true;mutate(s=>{s.items.forEach(i=>i.done=false)})};
+$("yesClear").onclick=()=>{
+  $("confirm").hidden=true;
+  const patch={};for(const i of items)if(i.done)patch[i.id+"/done"]=false;
+  if(Object.keys(patch).length)save(()=>req("","PATCH",patch),()=>{items.forEach(i=>i.done=false)});
+};
 
 $("copyBtn").onclick=async e=>{
-  const txt=SECTIONS.map(s=>{const r=state.items.filter(i=>i.sec===s.id&&!i.done);return r.length?s.name+":\n"+r.map(i=>"- "+i.name).join("\n"):""}).filter(Boolean).join("\n\n");
+  const txt=SECTIONS.map(s=>{const r=items.filter(i=>i.sec===s.id&&!i.done).sort((a,b)=>(a.at||0)-(b.at||0));return r.length?s.name+":\n"+r.map(i=>"- "+i.name).join("\n"):""}).filter(Boolean).join("\n\n");
   const b=e.currentTarget;
   try{await navigator.clipboard.writeText(txt);b.textContent="انتسخ ✓"}catch(err){b.textContent="ما انتسخ"}
-  setTimeout(()=>b.textContent="نسخ الباقي",1600);
+  setTimeout(()=>b.textContent="انسخ الباقي",1600);
 };
 
 $("settingsBtn").onclick=()=>{$("settings").hidden=!$("settings").hidden};
@@ -318,12 +302,10 @@ $("muteMe").addEventListener("change",e=>store.set("masswak-mute",e.target.check
 document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{
   const inp=$(b.dataset.copy);
   try{await navigator.clipboard.writeText(inp.value);b.textContent="انتسخ ✓"}catch(e){inp.select()}
-  setTimeout(()=>b.textContent="نسخ",1600);
+  setTimeout(()=>b.textContent="انسخ",1600);
 });
-window.addEventListener("hashchange",()=>{const id=readListId();if(id&&id!==listId)location.reload()});
 
-listId=readListId();
-if(listId)startList();else $("setup").hidden=false;
+if(DB_URL)start();else $("setup").hidden=false;
 </script>
 </body>
 </html>
